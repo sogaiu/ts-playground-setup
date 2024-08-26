@@ -12,11 +12,15 @@
 #
 # 3. run this script using janet.
 #
-# 4. assuming it succeeded, observe the output as it will give hints
-#    about how to edit web/playground.html...then edit appropriately.
-#
-# 5. cd to the web directory and try serving the web pages and viewing
+# 4. cd to the web directory and try serving the web pages and viewing
 #    via a browser.  with python3, one can do `python3 -m http.server`
+
+########################################################################
+
+# TODO
+#
+# 1. write a version in bash, test in osh
+# 2. write a version in ysh
 
 ########################################################################
 
@@ -83,6 +87,28 @@
   [url]
   (string/slice url (inc (last (string/find-all "/" url)))))
 
+(comment
+
+  (tail-from-url "https://github.com/tree-sitter/tree-sitter-c")
+  # =>
+  "tree-sitter-c"
+
+  )
+
+(defn dir-to-name
+  [dir]
+  (->> (string/slice dir (length "tree-sitter-"))
+       # ...because naming can be tricky
+       (string/replace-all "-" "_")))
+
+(comment
+
+  (dir-to-name "tree-sitter-janet-simple")
+  # =>
+  "janet_simple"
+
+  )
+
 ########################################################################
 
 (def repo-root-dir (os/cwd))
@@ -145,10 +171,7 @@
 (each g-url grammar-repo-urls
   (defer (os/cd repo-root-dir)
     (def local-dir (tail-from-url g-url))
-    (def name
-      (->> (string/slice local-dir (length "tree-sitter-"))
-           # ...because naming can be tricky
-           (string/replace-all "-" "_")))
+    (def name (dir-to-name local-dir))
     (os/cd local-dir)
     # make sure src/parser.c and friends exist
     (os/execute ["tree-sitter" "generate" "--no-bindings"] :px)
@@ -180,71 +203,46 @@
   (spit (string "../" web-root "/playground.html")
         (slurp "cli/src/playground.html")))
 
-# 6. give some hints as to how to finish ott
-(def diff
-  ``
-  --- tree-sitter/cli/src/playground.html	2024-08-26 19:22:17.486280893 +0900
-  +++ web/playground.html	2024-08-26 19:25:28.551343347 +0900
-  @@ -1,17 +1,17 @@
-   <head>
-     <meta charset="utf-8">
-  -  <title>tree-sitter THE_LANGUAGE_NAME</title>
-  -  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.45.0/codemirror.min.css">
-  -  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/clusterize.js/0.18.0/clusterize.min.css">
-  -  <link rel="icon" type="image/png" href="https://tree-sitter.github.io/tree-sitter/assets/images/favicon-32x32.png" sizes="32x32" />
-  -  <link rel="icon" type="image/png" href="https://tree-sitter.github.io/tree-sitter/assets/images/favicon-16x16.png" sizes="16x16" />
-  +  <title>tree-sitter playground</title>
-  +  <link rel="stylesheet" href="/assets/css/codemirror.min.css">
-  +  <link rel="stylesheet" href="/assets/css/clusterize.min.css">
-  +  <link rel="icon" type="image/png" href="/assets/images/favicon-32x32.png" sizes="32x32" />
-  +  <link rel="icon" type="image/png" href="/assets/images/favicon-16x16.png" sizes="16x16" />
-   </head>
+# 6. edit playground.html
+(def pg-path (string web-root "/playground.html"))
 
-   <body>
-     <div id="playground-container" style="visibility: hidden;">
-       <header>
-         <div class=header-item>
-  -        <bold>THE_LANGUAGE_NAME</bold>
-  +        <bold>playground</bold>
-         </div>
+(var pg (slurp pg-path))
 
-         <div class=header-item>
-  @@ -33,8 +33,9 @@
-           <a href="https://tree-sitter.github.io/tree-sitter/playground#about">(?)</a>
-         </div>
+# mostly account for grammars and make things local
+(def patches
+  @[#
+    [`THE_LANGUAGE_NAME`
+     `playground`]
+    # make js local
+    ;(map |[$ (string "/" (tail-from-url $))]
+          js-urls)
+    # make css local
+    ;(map |[$ (string "/assets/css/" (tail-from-url $))]
+          css-urls)
+    # some image paths
+    [`https://tree-sitter.github.io/tree-sitter/assets/images/`
+     `/assets/images/`]
+    # show drop down
+    [`<select id="language-select" style="display: none;">`
+     `<select id="language-select">`]
+    # show items for each grammar
+    [`<option value="parser">Parser</option>`
+     (string/join (map |(do
+                          (def name (dir-to-name (tail-from-url $)))
+                          (string/format `<option value="%s">%s</option>`
+                                         name name))
+                       grammar-repo-urls)
+                  "\n")]])
 
-  -      <select id="language-select" style="display: none;">
-  -        <option value="parser">Parser</option>
-  +      <select id="language-select">
-  +        <option value="clojure">clojure</option>
-  +        <option value="janet_simple">janet_simple</option>
-         </select>
-       </header>
+(each [target replacement] patches
+  (set pg (string/replace-all target replacement pg)))
 
-  @@ -56,12 +57,12 @@
-     </div>
+(spit pg-path pg)
 
-     <script
-  -    src="https://code.jquery.com/jquery-3.3.1.min.js"
-  +    src="/jquery-3.3.1.min.js"
-       crossorigin="anonymous">
-     </script>
+# 7. report
+(print "Done.\n")
 
-  -  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.45.0/codemirror.min.js"></script>
-  -  <script src="https://cdnjs.cloudflare.com/ajax/libs/clusterize.js/0.18.0/clusterize.min.js"></script>
-  +  <script src="/codemirror.min.js"></script>
-  +  <script src="/clusterize.min.js"></script>
-
-     <script>LANGUAGE_BASE_URL = "";</script>
-     <script src=tree-sitter.js></script>
-  ``)
-
-(print)
-
-(print diff)
-
-(print)
-
-(printf "Please edit %s/playground.html (see example diff above)."
-        web-root)
+(printf "To test:\n")
+(printf "1. Start a web server in the directory named: %s" web-root)
+(printf "2. Visit the playground.html file in a browser via http")
 
