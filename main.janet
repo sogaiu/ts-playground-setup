@@ -264,8 +264,11 @@
 (print "Done.\n")
 
 (printf "To test:\n")
-(printf "1. Start a web server in the directory named: %s" web-root)
-(printf "   e.g. cd %s && python3 -m http.server" web-root)
-(printf "2. Visit the playground.html file in a browser via http")
-(printf "   e.g. xdg-open http://localhost:8000/playground.html")
+(printf "1. Start a web server in the directory named %s, e.g." web-root)
+(print)
+(printf "   cd %s && python3 -m http.server" web-root)
+(print)
+(printf "2. Visit the playground.html file in a browser via http, e.g.")
+(print)
+(printf "   xdg-open http://localhost:8000/playground.html")
 
