@@ -1,9 +1,6 @@
 # script to prepare a directory with appropriate .js, .html, .wasm, etc.
 # for serving a tree-sitter playground for grammars of one's choice.
 
-# 0. visit ts-questions to confirm the appropriate emsdk version
-#    to use relative to the tree-sitter cli version you will be using.
-#
 # 1. edit grammar-repo-urls below to specify grammar repository urls
 #
 # 2. run this script using janet.
@@ -20,8 +17,6 @@
 
 ########################################################################
 
-# see ts-questions repository for info on appropriate version
-(def emsdk-version "3.1.64")
 
 ########################################################################
 
@@ -94,6 +89,13 @@
     (os/execute ["git" "clone" url] :px)))
 
 # 2. setup emsdk
+(def emsdk-version
+  # valid from around 2022-09-06 (pre v0.20.8), see commit: d47713ee
+  (string/trim (slurp "tree-sitter/cli/loader/emscripten-version")))
+
+(assert (peg/match ~(sequence :d+ "." :d+ "." :d+) emsdk-version)
+        (string/format "unexpected emsdk-version: %s" emsdk-version))
+
 (defer (os/cd repo-root-dir)
   (os/cd "emsdk")
   (os/execute ["./emsdk" "install" emsdk-version] :px)
