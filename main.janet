@@ -10,23 +10,6 @@
 
 ########################################################################
 
-# urls to be edited
-
-(def grammar-repos
-  (let [gr "grammar-repos.txt"]
-    (when (os/stat gr)
-      (def content (string/trim (slurp gr)))
-      (def info @[])
-      (each line (string/split "\n" content)
-        (when (string/has-prefix? "https://" line)
-          (array/push info
-                      (string/split " " (string/trim line)))))
-      (when (empty? info)
-        (errorf "failed to find repo info in %s" gr))
-      info)))
-
-########################################################################
-
 # paths and urls that likely can stay the same
 
 (def web-root "web")
@@ -79,6 +62,19 @@
 ########################################################################
 
 (def repo-root-dir (os/cwd))
+
+(def grammar-repos
+  (let [gr "grammar-repos.txt"]
+    (when (os/stat gr)
+      (def content (string/trim (slurp gr)))
+      (def info @[])
+      (each line (string/split "\n" content)
+        (when (string/has-prefix? "https://" line)
+          (array/push info
+                      (string/split " " (string/trim line)))))
+      (when (empty? info)
+        (errorf "failed to find repo info in %s" gr))
+      info)))
 
 (def repo-urls
   @[ts-repo-url
