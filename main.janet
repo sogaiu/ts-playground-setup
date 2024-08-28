@@ -6,13 +6,9 @@
 #
 # 1. edit grammar-repo-urls below to specify grammar repository urls
 #
-# 2. optionally confirm the jquery, codemirror, and clusterize versions
-#    to use.  the versions in this script were obtained via a copy
-#    of cli/src/playrgound.html within the tree-sitter repository.
+# 2. run this script using janet.
 #
-# 3. run this script using janet.
-#
-# 4. cd to the web directory and try serving the web pages and viewing
+# 3. cd to the web directory and try serving the web pages and viewing
 #    via a browser.  with python3, one can do `python3 -m http.server`
 
 ########################################################################
@@ -24,15 +20,8 @@
 
 ########################################################################
 
-# versions of things one might want to update from time-to-time
-
 # see ts-questions repository for info on appropriate version
 (def emsdk-version "3.1.64")
-
-# see latest playground.html in tree-sitter repository for versions
-(def jquery-version "3.3.1")
-(def codemirror-version "5.45.0")
-(def clusterize-version "0.18.0")
 
 ########################################################################
 
@@ -49,26 +38,6 @@
 (def grammar-repo-urls
   @["https://github.com/sogaiu/tree-sitter-clojure"
     "https://github.com/sogaiu/tree-sitter-janet-simple"])
-
-(def js-urls
-  # obtained urls via playground.html
-  @[(string/format "https://code.jquery.com/jquery-%s.min.js"
-                   jquery-version)
-    (string/format (string "https://cdnjs.cloudflare.com"
-                           "/ajax/libs/codemirror/%s/codemirror.min.js")
-                   codemirror-version)
-    (string/format (string "https://cdnjs.cloudflare.com"
-                           "/ajax/libs/clusterize.js/%s/clusterize.min.js")
-                   clusterize-version)])
-
-(def css-urls
-  # obtained urls via playground.html
-  @[(string/format (string "https://cdnjs.cloudflare.com"
-                           "/ajax/libs/codemirror/%s/codemirror.min.css")
-                   codemirror-version)
-    (string/format (string "https://cdnjs.cloudflare.com"
-                           "/ajax/libs/clusterize.js/%s/clusterize.min.css")
-                   clusterize-version)])
 
 ########################################################################
 
@@ -149,24 +118,6 @@
 (os/mkdir (string web-root "/assets/css"))
 (os/mkdir (string web-root "/assets/images"))
 
-(defer (os/cd repo-root-dir)
-  (os/cd (string web-root "/assets/css"))
-  (each css-url css-urls
-    (def name (tail-from-url css-url))
-    (os/execute ["curl"
-                 "--output" name
-                 "--location"
-                 css-url] :px)))
-
-(defer (os/cd repo-root-dir)
-  (os/cd web-root)
-  (each js-url js-urls
-    (def name (tail-from-url js-url))
-    (os/execute ["curl"
-                 "--output" name
-                 "--location"
-                 js-url] :px)))
-
 # 4. build and copy grammar wasm files
 (each g-url grammar-repo-urls
   (defer (os/cd repo-root-dir)
@@ -203,10 +154,57 @@
   (spit (string "../" web-root "/playground.html")
         (slurp "cli/src/playground.html")))
 
-# 6. edit playground.html
+# 6. extract info from playground.html and edit
 (def pg-path (string web-root "/playground.html"))
 
 (var pg (slurp pg-path))
+
+(def codemirror-version
+  (when-let [[target]
+             (peg/match ~(sequence (thru "/ajax/libs/codemirror/")
+                                   (capture (to "/")))
+                        pg)]
+    target))
+
+(assert codemirror-version "failed to determine codemirror version")
+
+(def clusterize-version
+  (when-let [[target]
+             (peg/match ~(sequence (thru "/ajax/libs/clusterize.js/")
+                                   (capture (to "/")))
+                        pg)]
+    target))
+
+(assert clusterize-version "failed to determine clusterize version")
+
+(def jquery-version
+  (when-let [[target]
+             (peg/match ~(sequence (thru "code.jquery.com/jquery-")
+                                   (capture (to ".min.js")))
+                        pg)]
+    target))
+
+(assert jquery-version "failed to determine jquery version")
+
+(def js-urls
+  # obtained urls via playground.html
+  @[(string/format "https://code.jquery.com/jquery-%s.min.js"
+                   jquery-version)
+    (string/format (string "https://cdnjs.cloudflare.com"
+                           "/ajax/libs/codemirror/%s/codemirror.min.js")
+                   codemirror-version)
+    (string/format (string "https://cdnjs.cloudflare.com"
+                           "/ajax/libs/clusterize.js/%s/clusterize.min.js")
+                   clusterize-version)])
+
+(def css-urls
+  # obtained urls via playground.html
+  @[(string/format (string "https://cdnjs.cloudflare.com"
+                           "/ajax/libs/codemirror/%s/codemirror.min.css")
+                   codemirror-version)
+    (string/format (string "https://cdnjs.cloudflare.com"
+                           "/ajax/libs/clusterize.js/%s/clusterize.min.css")
+                   clusterize-version)])
 
 # mostly account for grammars and make things local
 (def patches
@@ -239,7 +237,26 @@
 
 (spit pg-path pg)
 
-# 7. report
+# 7. fetch css and js files
+(defer (os/cd repo-root-dir)
+  (os/cd (string web-root "/assets/css"))
+  (each css-url css-urls
+    (def name (tail-from-url css-url))
+    (os/execute ["curl"
+                 "--output" name
+                 "--location"
+                 css-url] :px)))
+
+(defer (os/cd repo-root-dir)
+  (os/cd web-root)
+  (each js-url js-urls
+    (def name (tail-from-url js-url))
+    (os/execute ["curl"
+                 "--output" name
+                 "--location"
+                 js-url] :px)))
+
+# 8. report
 (print "Done.\n")
 
 (printf "To test:\n")
