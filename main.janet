@@ -17,10 +17,15 @@
 
 ########################################################################
 
+# urls to be edited
+
+(def grammar-repo-urls
+  @["https://github.com/sogaiu/tree-sitter-clojure"
+    "https://github.com/sogaiu/tree-sitter-janet-simple"])
 
 ########################################################################
 
-# paths and urls
+# paths and urls that likely can stay the same
 
 (def web-root "web")
 
@@ -29,10 +34,6 @@
 
 (def emsdk-repo-url
   "https://github.com/emscripten-core/emsdk")
-
-(def grammar-repo-urls
-  @["https://github.com/sogaiu/tree-sitter-clojure"
-    "https://github.com/sogaiu/tree-sitter-janet-simple"])
 
 ########################################################################
 
@@ -101,8 +102,7 @@
   (os/execute ["./emsdk" "install" emsdk-version] :px)
   (os/execute ["./emsdk" "activate" emsdk-version] :px))
 
-# https://github.com/emscripten-core/emsdk/issues/1142 \
-#         #issuecomment-1334065131
+# https://github.com/emscripten-core/emsdk/issues/1142#issuecomment-1334065131
 (def path-with-emcc
   (string (os/cwd) "/emsdk/upstream/emscripten" ":"
           (os/getenv "PATH")))
@@ -115,10 +115,11 @@
 '(os/execute ["which" "emcc"] :pex env-with-emcc)
 
 # 3. prepare the web root hierarchy skeleton
-(os/mkdir web-root)
-(os/mkdir (string web-root "/assets"))
-(os/mkdir (string web-root "/assets/css"))
-(os/mkdir (string web-root "/assets/images"))
+(each path [web-root
+            (string web-root "/assets")
+            (string web-root "/assets/css")
+            (string web-root "/assets/images")]
+  (os/mkdir path))
 
 # 4. build and copy grammar wasm files
 (each g-url grammar-repo-urls
@@ -145,48 +146,44 @@
         (slurp "lib/binding_web/tree-sitter.js"))
   (spit (string "../" web-root "/tree-sitter.wasm")
         (slurp "lib/binding_web/tree-sitter.wasm"))
-  # copy other relevant bits
+  # copy other web-relevant bits
   (spit (string "../" web-root "/assets/images/favicon-16x16.png")
         (slurp "docs/assets/images/favicon-16x16.png"))
   (spit (string "../" web-root "/assets/images/favicon-32x32.png")
         (slurp "docs/assets/images/favicon-32x32.png"))
   (spit (string "../" web-root "/playground.js")
         (slurp "docs/assets/js/playground.js"))
-  # XXX: playground.html needs to be edited!
   (spit (string "../" web-root "/playground.html")
         (slurp "cli/src/playground.html")))
 
-# 6. extract info from playground.html and edit
+# 6. extract info from playground.html and edit in-place
 (def pg-path (string web-root "/playground.html"))
 
 (var pg (slurp pg-path))
 
 (def codemirror-version
-  (when-let [[target]
-             (peg/match ~(sequence (thru "/ajax/libs/codemirror/")
-                                   (capture (to "/")))
-                        pg)]
-    target))
-
-(assert codemirror-version "failed to determine codemirror version")
+  (if-let [[target]
+           (peg/match ~(sequence (thru "/ajax/libs/codemirror/")
+                                 (capture (to "/")))
+                      pg)]
+    target
+    "failed to determine codemirror version"))
 
 (def clusterize-version
-  (when-let [[target]
-             (peg/match ~(sequence (thru "/ajax/libs/clusterize.js/")
-                                   (capture (to "/")))
-                        pg)]
-    target))
-
-(assert clusterize-version "failed to determine clusterize version")
+  (if-let [[target]
+           (peg/match ~(sequence (thru "/ajax/libs/clusterize.js/")
+                                 (capture (to "/")))
+                      pg)]
+    target
+    "failed to determine clusterize version"))
 
 (def jquery-version
-  (when-let [[target]
-             (peg/match ~(sequence (thru "code.jquery.com/jquery-")
-                                   (capture (to ".min.js")))
-                        pg)]
-    target))
-
-(assert jquery-version "failed to determine jquery version")
+  (if-let [[target]
+           (peg/match ~(sequence (thru "code.jquery.com/jquery-")
+                                 (capture (to ".min.js")))
+                      pg)]
+    target
+    "failed to determine jquery version"))
 
 (def js-urls
   # obtained urls via playground.html
@@ -208,7 +205,7 @@
                            "/ajax/libs/clusterize.js/%s/clusterize.min.css")
                    clusterize-version)])
 
-# mostly account for grammars and make things local
+# account for grammars, make things local, and some minor changes
 (def patches
   @[#
     [`THE_LANGUAGE_NAME`
@@ -219,7 +216,7 @@
     # make css local
     ;(map |[$ (string "/assets/css/" (tail-from-url $))]
           css-urls)
-    # some image paths
+    # make some images paths local
     [`https://tree-sitter.github.io/tree-sitter/assets/images/`
      `/assets/images/`]
     # show drop down
