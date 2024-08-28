@@ -10,13 +10,6 @@
 
 ########################################################################
 
-# TODO
-#
-# 1. write a version in bash, test in osh
-# 2. write a version in ysh
-
-########################################################################
-
 # urls to be edited
 
 (def grammar-repo-urls
