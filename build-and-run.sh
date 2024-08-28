@@ -2,6 +2,21 @@
 
 JANET_TAG=v1.35.2
 
+# https://stackoverflow.com/a/27776822
+# https://en.wikipedia.org/wiki/Uname#Examples
+case $(uname -s) in
+  Linux*)
+    MAKE="make"
+    ;;
+  Darwin* | DragonFly* | FreeBSD* | NetBSD* | OpenBSD*)
+    MAKE="gmake"
+    ;;
+  *)
+    printf "Unrecognized system, defaulting to: make"
+    MAKE="make"
+    ;;
+esac
+
 ########################################################################
 
 fetch_and_build_janet()
@@ -9,7 +24,7 @@ fetch_and_build_janet()
   git clone https://github.com/janet-lang/janet && \
     cd janet && \
     git checkout "$JANET_TAG" && \
-    make && \
+    "$MAKE" && \
     cd "$dir" || exit
 }
 
@@ -41,3 +56,4 @@ case "$answer" in
     printf "Ok, aborting.\n"
     ;;
 esac
+
