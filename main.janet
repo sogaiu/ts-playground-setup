@@ -210,6 +210,11 @@
   @[#
     [`THE_LANGUAGE_NAME`
      `playground`]
+    # remove about link
+    [(string `<a href="`
+             `https://tree-sitter.github.io/tree-sitter/playground#about`
+             `">(?)</a>`)
+     ""]
     # make js local
     ;(map |[$ (string "/" (tail-from-url $))]
           js-urls)
