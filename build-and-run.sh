@@ -21,7 +21,7 @@ printf "Prepare a tree-sitter playground directory.\n"
 printf "\n"
 printf "This involves cloning, building, scraping, etc.\n"
 printf "\n"
-printf "Note: probably good to edit grammar-repo-urls.txt first.\n"
+printf "Note: probably good to edit grammar-repos.txt first.\n"
 printf "\n"
 printf "Continue? [y/N] "
 

@@ -33,7 +33,7 @@ Edit list of grammar repositories [1]:
 
 ```
 cd ts-playground-setup
-$EDITOR grammar-repo-urls.txt || $VISUAL grammar-repo-urls.txt
+$EDITOR grammar-repos.txt || $VISUAL grammar-repos.txt
 ```
 
 Prepare web directory:
@@ -83,7 +83,7 @@ building, and copying.  `playground.html` is modified in various ways
 including:
 
 * changing to account for the grammars specified by the user via
-  `grammar-repo-urls.txt`
+  `grammar-repos.txt`
 * changing links to `.css`, `.js`, `.wasm`, etc. be local ones
 * some other tweaks (including cosmetic things)
 
@@ -99,12 +99,11 @@ programming language so that is cloned and built as well.
 
 ### Limits
 
-This probably won't work for grammar repositories where the
-`grammar.js` file doesn't live at the corresponding root directory
-(e.g. tree-sitter-markdown).
-
-It probably won't work for grammars that depend on other grammars
+This probably won't work for grammars that depend on other grammars
 either (e.g. tree-sitter-cpp).
+
+This may also not work if the repository url doesn't end in something
+like `tree-sitter-<name>`.
 
 ## Footnotes
 

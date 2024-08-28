@@ -1,7 +1,7 @@
 # script to prepare a directory with appropriate .js, .html, .wasm, etc.
 # for serving a tree-sitter playground for grammars of one's choice.
 
-# 0. edit content of the file grammar-repo-urls.txt appropriately
+# 0. edit content of the file grammar-repos.txt appropriately
 #
 # 1. run this script using janet.
 #
@@ -12,17 +12,18 @@
 
 # urls to be edited
 
-(def grammar-repo-urls
-  (let [gru "grammar-repo-urls.txt"]
-    (when (os/stat "grammar-repo-urls.txt")
-      (def content (string/trim (slurp gru)))
-      (def urls @[])
+(def grammar-repos
+  (let [gr "grammar-repos.txt"]
+    (when (os/stat gr)
+      (def content (string/trim (slurp gr)))
+      (def info @[])
       (each line (string/split "\n" content)
         (when (string/has-prefix? "https://" line)
-          (array/push urls (string/trim line))))
-      (when (empty? urls)
-        (errorf "failed to find any urls in %s" gru))
-      urls)))
+          (array/push info
+                      (string/split " " (string/trim line)))))
+      (when (empty? info)
+        (errorf "failed to find repo info in %s" gr))
+      info)))
 
 ########################################################################
 
@@ -63,7 +64,7 @@
 
 (defn dir-to-name
   [dir]
-  (->> (string/slice dir (length "tree-sitter-"))
+  (->> (string/replace "tree-sitter-" "" dir)
        # ...because naming can be tricky
        (string/replace-all "-" "_")))
 
@@ -82,7 +83,7 @@
 (def repo-urls
   @[ts-repo-url
     emsdk-repo-url
-    ;grammar-repo-urls
+    ;(map first grammar-repos)
     ])
 
 # 1. clone all the things
@@ -123,18 +124,23 @@
   (os/mkdir path))
 
 # 4. build and copy grammar wasm files
-(each g-url grammar-repo-urls
+(each [url extra] grammar-repos
   (defer (os/cd repo-root-dir)
-    (def local-dir (tail-from-url g-url))
-    (def name (dir-to-name local-dir))
+    (def local-dir (tail-from-url url))
+    (def name
+      (dir-to-name (if extra
+                     extra
+                     local-dir)))
     (os/cd local-dir)
+    (when extra
+      (os/cd extra))
     # make sure src/parser.c and friends exist
     (os/execute ["tree-sitter" "generate" "--no-bindings"] :px)
     # build wasm files
     (os/execute ["tree-sitter" "build" "--wasm"] :pex env-with-emcc)
     # copy built wasm into web-root
     (def wasm-name (string "tree-sitter-" name ".wasm"))
-    (spit (string "../" web-root "/" wasm-name)
+    (spit (string repo-root-dir "/" web-root "/" wasm-name)
           (slurp wasm-name))))
 
 # 5. build tree-sitter.{js,wasm}, and copy results and web stuff
@@ -230,11 +236,14 @@
      `<select id="language-select">`]
     # show items for each grammar
     [`<option value="parser">Parser</option>`
-     (string/join (map |(do
-                          (def name (dir-to-name (tail-from-url $)))
+     (string/join (map |(let [[url extra] $
+                              local-dir (tail-from-url url)
+                              name (dir-to-name (if extra
+                                                  extra
+                                                  local-dir))]
                           (string/format `<option value="%s">%s</option>`
                                          name name))
-                       grammar-repo-urls)
+                       grammar-repos)
                   "\n")]])
 
 (each [target replacement] patches
