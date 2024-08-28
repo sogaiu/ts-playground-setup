@@ -15,8 +15,8 @@ tools such as:
 
 * git
 * gcc or clang
-* make
-* typical shell such as dash or bash
+* GNU make
+* typical shell such as dash, bash, or zsh
 
 See the Details section below for more information including
 limitations.
@@ -100,9 +100,9 @@ programming language so that is cloned and built as well.
 ### Limits
 
 This probably won't work for grammars that depend on other grammars
-either (e.g. tree-sitter-cpp).
+(e.g. tree-sitter-cpp).
 
-This may also not work if the repository url doesn't end in something
+This may not work if the repository url doesn't end in something
 like `tree-sitter-<name>`.
 
 ## Footnotes
