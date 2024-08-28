@@ -1,11 +1,11 @@
 # script to prepare a directory with appropriate .js, .html, .wasm, etc.
 # for serving a tree-sitter playground for grammars of one's choice.
 
-# 1. edit grammar-repo-urls below to specify grammar repository urls
+# 0. edit content of the file grammar-repo-urls.txt appropriately
 #
-# 2. run this script using janet.
+# 1. run this script using janet.
 #
-# 3. cd to the web directory and try serving the web pages and viewing
+# 2. cd to the web directory and try serving the web pages and viewing
 #    via a browser.  with python3, one can do `python3 -m http.server`
 
 ########################################################################
@@ -13,8 +13,16 @@
 # urls to be edited
 
 (def grammar-repo-urls
-  @["https://github.com/sogaiu/tree-sitter-clojure"
-    "https://github.com/sogaiu/tree-sitter-janet-simple"])
+  (let [gru "grammar-repo-urls.txt"]
+    (when (os/stat "grammar-repo-urls.txt")
+      (def content (string/trim (slurp gru)))
+      (def urls @[])
+      (each line (string/split "\n" content)
+        (when (string/has-prefix? "https://" line)
+          (array/push urls (string/trim line))))
+      (when (empty? urls)
+        (errorf "failed to find any urls in %s" gru))
+      urls)))
 
 ########################################################################
 
