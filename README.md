@@ -29,6 +29,8 @@ See the Details section below for information regarding:
 
 ## Instructions
 
+### Setup and Run
+
 Clone this repository:
 
 ```
@@ -47,6 +49,8 @@ Prepare web directory:
 ```
 sh build-and-run.sh
 ```
+
+### Verify
 
 Examine results by running a web server, e.g.:
 
