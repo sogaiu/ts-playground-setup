@@ -47,10 +47,17 @@
   #"tree-sitter.0.23.0"
   )
 
+# https://github.com/emscripten-core/emsdk/issues/1441
+(def emsdk-version
+  (get ts-emsdk (get ts-repo 1)))
+
+(assert emsdk-version
+        (string "failed to guess emsdk version.\n"
+                "tip: can specify a value via emsdk-version\n"))
+
 (def emsdk-repo
   ["https://github.com/emscripten-core/emsdk"
-   # https://github.com/emscripten-core/emsdk/issues/1441
-   (get ts-emsdk (get ts-repo 1))])
+   emsdk-version])
 
 ########################################################################
 
