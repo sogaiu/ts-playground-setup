@@ -1,7 +1,8 @@
 # ts-playground-setup
 
 Prepare a directory of files to serve a tree-sitter playground for one
-or more grammars.
+or more grammars, like
+[this](https://sogaiu.github.io/ts-playground-setup/playground.html).
 
 ## Introduction
 
