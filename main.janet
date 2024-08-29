@@ -267,8 +267,9 @@
 
 (each path [web-root
             (string web-root "/assets")
+            (string web-root "/assets/images")
             (string web-root "/assets/css")
-            (string web-root "/assets/images")]
+            (string web-root "/assets/wasm")]
   (os/mkdir path))
 
 (print-and-logf "4. Building and copying grammar .wasm files")
@@ -291,7 +292,7 @@
     (ts-build-wasm env-with-emcc)
     # copy built wasm into web-root
     (def wasm-name (string "tree-sitter-" name ".wasm"))
-    (spit (string repo-root-dir "/" web-root "/" wasm-name)
+    (spit (string repo-root-dir "/" web-root "/assets/wasm/" wasm-name)
           (slurp wasm-name))))
 
 (print-and-logf "5. Building and copying playground web bits")
@@ -372,20 +373,22 @@
   @[#
     [`THE_LANGUAGE_NAME`
      `playground`]
+    [`LANGUAGE_BASE_URL = "";`
+     `LANGUAGE_BASE_URL = "assets/wasm";`]
     # remove about link
     [(string `<a href="`
              `https://tree-sitter.github.io/tree-sitter/playground#about`
              `">(?)</a>`)
      ""]
     # make js local
-    ;(map |[$ (string "/" (tail-from-url $))]
+    ;(map |[$ (tail-from-url $)]
           js-urls)
     # make css local
-    ;(map |[$ (string "/assets/css/" (tail-from-url $))]
+    ;(map |[$ (string "assets/css/" (tail-from-url $))]
           css-urls)
     # make some images paths local
     [`https://tree-sitter.github.io/tree-sitter/assets/images/`
-     `/assets/images/`]
+     `assets/images/`]
     # show drop down
     [`<select id="language-select" style="display: none;">`
      `<select id="language-select">`]
