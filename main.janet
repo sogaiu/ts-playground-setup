@@ -78,6 +78,28 @@
 
 ########################################################################
 
+(def log @[])
+
+(defn print-and-logf
+  [fmt & args]
+  (def msg (string/format fmt ;args))
+  (print msg)
+  (array/push log msg))
+
+(defn dump-log
+  []
+  (each line log (eprint line)))
+
+(defn exit-with-logf
+  [msg & args]
+  (def response (getline "Dump full log? [y/N]"))
+  (when (= "y" (string/ascii-lower response))
+    (dump-log))
+  (eprintf msg ;args)
+  (os/exit 1))
+
+########################################################################
+
 (defn tail-from-url
   [url]
   (string/slice url (inc (last (string/find-all "/" url)))))
@@ -107,7 +129,12 @@
 (defn ts-version
   []
   (with [of (file/temp)]
-    (os/execute [ts-bin-path "--version"] :px {:out of})
+    (def ts-ver-result (os/execute [ts-bin-path "--version"] :p {:out of}))
+    (when (not (zero? ts-ver-result))
+      (exit-with-logf (string "exit code: %d\n"
+                              "failed to determine tree-sitter version")
+                      ts-ver-result))
+    #
     (file/seek of :set 0)
     # e.g. tree-sitter 0.23.0 (12fb31826b8469cc7b9788e72bceee5af1cf0977)
     (def output (->> (file/read of :all)
@@ -124,9 +151,24 @@
 
   )
 
+(defn do-command
+  [command flags &opt env]
+  (default env {})
+  (with [of (file/temp)]
+    (with [ef (file/temp)]
+      (def result
+        (os/execute command flags (merge env {:err ef :out of})))
+      (when (not (zero? result))
+        (print-and-logf of)
+        (print-and-logf ef)
+        (exit-with-logf (string "exit code: %d\n"
+                                "%n failed")
+                        result command)))))
+
 (defn ts-build-wasm
   [env]
-  (def [major minor patch] (ts-version))
+  # XXX: don't enable yet
+  #(def [major minor patch] (ts-version))
   (def args
     # XXX: don't enable yet
     # plan is for v0.24.0 to remove build-wasm apparently
@@ -134,11 +176,13 @@
       ["build-wasm"]
     #  ["build" "--wasm"])
     )
-  (os/execute [ts-bin-path ;args] :pex env))
+  (do-command [ts-bin-path ;args] :pe env))
 
 ########################################################################
 
 (def repo-root-dir (os/cwd))
+
+(print-and-logf "0. Detecting grammars:")
 
 (def grammar-repos
   (let [gr "grammar-repos.txt"]
@@ -150,8 +194,11 @@
           (array/push repo-info
                       (string/split " " (string/trim line)))))
       (when (empty? repo-info)
-        (errorf "failed to find repo info in %s" gr))
+        (exit-with-logf "failed to find repo info in %s" gr))
       repo-info)))
+
+(each [url _] grammar-repos
+  (print-and-logf "* %s" url))
 
 (def repos
   @[ts-repo
@@ -159,17 +206,16 @@
     ;(map |[(first $)] grammar-repos)
     ])
 
-# 1. clone all the things
+(print-and-logf "1. Cloning repositories...")
+
 (each [url branch] repos
   (when (not (os/stat (tail-from-url url)))
-    (os/execute ["git" "clone"
-                 "--depth" "1"
-                 (splice (if branch
-                           ["--branch" branch]
-                           []))
-                 url] :px)))
+    (def branch-part (if branch ["--branch" branch] []))
+    (print-and-logf "* Cloning %s..." url)
+    (do-command ["git" "clone" "--depth" "1" ;branch-part url] :p)))
 
-# 2. setup emsdk
+(print-and-logf "2. Setting up emsdk...")
+
 (def emsdk-version-from-ts
   # valid from around 2022-09-06 (pre v0.20.8), see commit: d47713ee
   (string/trim (slurp "tree-sitter/cli/loader/emscripten-version")))
@@ -185,8 +231,11 @@
 
 (defer (os/cd repo-root-dir)
   (os/cd "emsdk")
-  (os/execute ["./emsdk" "install" emsdk-version] :px)
-  (os/execute ["./emsdk" "activate" emsdk-version] :px))
+  (print-and-logf "* Running ./emsdk install %s..." emsdk-version)
+  (do-command ["./emsdk" "install" emsdk-version] :p)
+  #
+  (print-and-logf "* Running ./emsdk activate %s..." emsdk-version)
+  (do-command ["./emsdk" "activate" emsdk-version] :p))
 
 # https://github.com/emscripten-core/emsdk/issues/1142#issuecomment-1334065131
 (def path-with-emcc
@@ -194,20 +243,22 @@
           (os/getenv "PATH")))
 
 (def env-with-emcc
-  (merge (os/environ)
-         {"PATH" path-with-emcc}))
+  (merge (os/environ) {"PATH" path-with-emcc}))
 
 # XXX: can use this to see if emcc is available using env-with-emcc
 '(os/execute ["which" "emcc"] :pex env-with-emcc)
 
-# 3. prepare the web root hierarchy skeleton
+
+(print-and-logf "3. Preparing web root skeleton...")
+
 (each path [web-root
             (string web-root "/assets")
             (string web-root "/assets/css")
             (string web-root "/assets/images")]
   (os/mkdir path))
 
-# 4. build and copy grammar wasm files
+(print-and-logf "4. Building and copying grammar .wasm files...")
+
 (each [url extra] grammar-repos
   (defer (os/cd repo-root-dir)
     (def local-dir (tail-from-url url))
@@ -219,20 +270,25 @@
     (when extra
       (os/cd extra))
     # make sure src/parser.c and friends exist
-    (os/execute [ts-bin-path "generate" "--no-bindings"] :px)
+    (print-and-logf "* Generating parser.c and friends for %s..." name)
+    (do-command [ts-bin-path "generate" "--no-bindings"] :p)
     # build wasm files
+    (print-and-logf "* Building .wasm for %s..." name)
     (ts-build-wasm env-with-emcc)
     # copy built wasm into web-root
     (def wasm-name (string "tree-sitter-" name ".wasm"))
     (spit (string repo-root-dir "/" web-root "/" wasm-name)
           (slurp wasm-name))))
 
-# 5. build tree-sitter.{js,wasm}, and copy results and web stuff
+(print-and-logf "5. Building and copying playground web bits...")
+
 (defer (os/cd repo-root-dir)
   (os/cd "tree-sitter")
   # among other things, creates lib/binding_web/tree-sitter.{js,wasm}
-  (os/execute ["bash" "script/build-wasm" "--debug"] :pex env-with-emcc)
+  (print-and-logf "* Building tree-sitter.{js,wasm}")
+  (do-command ["bash" "script/build-wasm" "--debug"] :pe env-with-emcc)
   # copy to web-root, lib/binding_web/tree-sitter.{js,wasm}
+  (print-and-logf "* Copying some files into %s directory..." web-root)
   (spit (string "../" web-root "/tree-sitter.js")
         (slurp "lib/binding_web/tree-sitter.js"))
   (spit (string "../" web-root "/tree-sitter.wasm")
@@ -247,7 +303,8 @@
   (spit (string "../" web-root "/playground.html")
         (slurp "cli/src/playground.html")))
 
-# 6. extract info from playground.html and edit in-place
+(print-and-logf "6. Patching playground.html...")
+
 (def pg-path (string web-root "/playground.html"))
 
 (var pg (slurp pg-path))
@@ -335,24 +392,26 @@
 
 (spit pg-path pg)
 
+(print-and-logf "7. Fetching external .css and .js files...")
+
 # 7. fetch css and js files
 (defer (os/cd repo-root-dir)
   (os/cd (string web-root "/assets/css"))
+  (print-and-logf "* Fetching .css files...")
   (each css-url css-urls
     (def name (tail-from-url css-url))
-    (os/execute ["curl"
-                 "--output" name
+    (do-command ["curl" "--output" name
                  "--location"
-                 css-url] :px)))
+                 css-url] :p)))
 
 (defer (os/cd repo-root-dir)
   (os/cd web-root)
+  (print-and-logf "* Fetching .js files...")
   (each js-url js-urls
     (def name (tail-from-url js-url))
-    (os/execute ["curl"
-                 "--output" name
+    (do-command ["curl" "--output" name
                  "--location"
-                 js-url] :px)))
+                 js-url] :p)))
 
 # 8. report
 (print "Done.\n")
