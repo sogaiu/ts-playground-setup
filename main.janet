@@ -196,7 +196,7 @@
 
 (def repo-root-dir (os/cwd))
 
-(print-and-logf "0. Detecting grammars:")
+(print-and-logf "0. Detecting grammars")
 
 (def grammar-repos
   (let [content (string/trim (slurp grammar-repos-file))
@@ -219,7 +219,7 @@
     ;(map |[(first $)] grammar-repos)
     ])
 
-(print-and-logf "1. Cloning repositories...")
+(print-and-logf "1. Cloning repositories")
 
 (each [url branch] repos
   (when (not (os/stat (tail-from-url url)))
@@ -227,7 +227,7 @@
     (print-and-logf "* Cloning %s..." url)
     (do-command ["git" "clone" "--depth" "1" ;branch-part url] :p)))
 
-(print-and-logf "2. Setting up emsdk...")
+(print-and-logf "2. Setting up emsdk")
 
 (def emsdk-version-from-ts
   # valid from around 2022-09-06 (pre v0.20.8), see commit: d47713ee
@@ -262,7 +262,7 @@
 '(os/execute ["which" "emcc"] :pex env-with-emcc)
 
 
-(print-and-logf "3. Preparing web root skeleton...")
+(print-and-logf "3. Preparing web root skeleton")
 
 (each path [web-root
             (string web-root "/assets")
@@ -270,7 +270,7 @@
             (string web-root "/assets/images")]
   (os/mkdir path))
 
-(print-and-logf "4. Building and copying grammar .wasm files...")
+(print-and-logf "4. Building and copying grammar .wasm files")
 
 (each [url extra] grammar-repos
   (defer (os/cd repo-root-dir)
@@ -293,7 +293,7 @@
     (spit (string repo-root-dir "/" web-root "/" wasm-name)
           (slurp wasm-name))))
 
-(print-and-logf "5. Building and copying playground web bits...")
+(print-and-logf "5. Building and copying playground web bits")
 
 (defer (os/cd repo-root-dir)
   (os/cd "tree-sitter")
@@ -316,7 +316,7 @@
   (spit (string "../" web-root "/playground.html")
         (slurp "cli/src/playground.html")))
 
-(print-and-logf "6. Patching playground.html...")
+(print-and-logf "6. Patching playground.html")
 
 (def pg-path (string web-root "/playground.html"))
 
@@ -405,7 +405,7 @@
 
 (spit pg-path pg)
 
-(print-and-logf "7. Fetching external .css and .js files...")
+(print-and-logf "7. Fetching external .css and .js files")
 
 # 7. fetch css and js files
 (defer (os/cd repo-root-dir)
