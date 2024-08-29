@@ -51,17 +51,15 @@
 (def emsdk-version
   (get ts-emsdk (get ts-repo 1)))
 
-(assert emsdk-version
-        (string "failed to guess emsdk version.\n"
-                "tip: can specify a value via emsdk-version\n"))
-
 (def emsdk-repo
   ["https://github.com/emscripten-core/emsdk"
    emsdk-version])
 
 ########################################################################
 
-# output path
+# paths
+
+(def grammar-repos-file "grammar-repos.txt")
 
 (def web-root "web")
 
@@ -180,22 +178,37 @@
 
 ########################################################################
 
+(def [result _] (protect (os/execute [ts-bin-path] :p)))
+
+(assert result
+        (string/format "failed to find tree-sitter cli via: %s"
+                       ts-bin-path))
+
+(assert (= :file (os/stat grammar-repos-file :mode))
+        (string/format "failed to find grammar repos file: %s"
+                       grammar-repos-file))
+
+(assert emsdk-version
+        (string "failed to guess emsdk version.\n"
+                "tip: can specify a value via emsdk-version\n"))
+
+########################################################################
+
 (def repo-root-dir (os/cwd))
 
 (print-and-logf "0. Detecting grammars:")
 
 (def grammar-repos
-  (let [gr "grammar-repos.txt"]
-    (when (os/stat gr)
-      (def content (string/trim (slurp gr)))
-      (def repo-info @[])
-      (each line (string/split "\n" content)
-        (when (string/has-prefix? "https://" line)
-          (array/push repo-info
-                      (string/split " " (string/trim line)))))
-      (when (empty? repo-info)
-        (exit-with-logf "failed to find repo info in %s" gr))
-      repo-info)))
+  (let [content (string/trim (slurp grammar-repos-file))
+        repo-info @[]]
+    (each line (string/split "\n" content)
+      (when (string/has-prefix? "https://" line)
+        (array/push repo-info
+                    (string/split " " (string/trim line)))))
+    (when (empty? repo-info)
+      (exit-with-logf "failed to find repo info in %s"
+                      grammar-repos-file))
+    repo-info))
 
 (each [url _] grammar-repos
   (print-and-logf "* %s" url))
