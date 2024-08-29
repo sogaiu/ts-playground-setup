@@ -7,8 +7,8 @@ or more grammars.
 
 This repository provides code to automate the process of assembling a
 tree-sitter playground that works with a user-specified list of
-grammars.  This might be useful to demo one's grammar or to try out
-multiple grammars in a browser.
+grammars.  This might be useful to demo one's grammar via a web server
+or to try out multiple grammars in a browser.
 
 It may work on Unix-ish systems / environments [1] that have typical dev
 tools such as:
