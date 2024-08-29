@@ -116,6 +116,9 @@ This probably won't work for grammars that depend on other grammars
 This may not work if the repository url doesn't end in something
 like `tree-sitter-<name>`.
 
+I've seen reports of failure to build `.wasm` files for some grammars,
+so those may not work with the code in this repository either.
+
 ### Security
 
 This tool clones, compiles, and executes code from a variety of
