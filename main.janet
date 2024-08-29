@@ -13,6 +13,23 @@
 
 ########################################################################
 
+# https://github.com/sogaiu/ts-questions/blob \
+#                   /98536e18af4da0560a543aab63f4bffa9ca2dbe2 \
+#                   /questions \
+#                   /which-version-of-emscripten-should-be-used-for-the-playground
+#                   /README.md#versions
+(def ts-emsdk
+  @{"v0.20.9" "3.1.37"
+    "v0.21.0" "3.1.37"
+    "v0.22.0" "3.1.37"
+    "v0.22.1" "3.1.37"
+    "v0.22.2" "3.1.37"
+    "v0.22.3" "3.1.55"
+    "v0.22.4" "3.1.55"
+    "v0.22.5" "3.1.55"
+    "v0.22.6" "3.1.55"
+    "v0.23.0" "3.1.64"})
+
 (def ts-repo
   ["https://github.com/tree-sitter/tree-sitter"
    #"v0.20.9"
@@ -32,7 +49,8 @@
 
 (def emsdk-repo
   ["https://github.com/emscripten-core/emsdk"
-   "main"])
+   # https://github.com/emscripten-core/emsdk/issues/1441
+   (get ts-emsdk (get ts-repo 1))])
 
 ########################################################################
 
