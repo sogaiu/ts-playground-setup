@@ -11,10 +11,10 @@ JANET_BIN=./janet/build/janet
 # https://stackoverflow.com/a/27776822
 # https://en.wikipedia.org/wiki/Uname#Examples
 case $(uname -s) in
-  Linux*)
+  Linux* | Darwin*)
     MAKE="make"
     ;;
-  Darwin* | DragonFly* | FreeBSD* | NetBSD* | OpenBSD*)
+  DragonFly* | FreeBSD* | NetBSD* | OpenBSD*)
     MAKE="gmake"
     ;;
   *)
