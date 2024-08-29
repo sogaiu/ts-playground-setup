@@ -178,7 +178,8 @@
 
 ########################################################################
 
-(def [result _] (protect (os/execute [ts-bin-path] :p)))
+(def [result _]
+  (protect (os/execute [ts-bin-path] :p {:err (file/temp)})))
 
 (assert result
         (string/format "failed to find tree-sitter cli via: %s"
