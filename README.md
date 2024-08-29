@@ -18,8 +18,11 @@ tools such as:
 * GNU make
 * typical shell such as dash, bash, or zsh
 
-See the Details section below for more information including
-limitations.
+See the Details section below for information regarding:
+
+* Implementation
+* Limits
+* Security <- *PLEASE LOOK AT THIS*
 
 ## Instructions
 
@@ -104,6 +107,39 @@ This probably won't work for grammars that depend on other grammars
 
 This may not work if the repository url doesn't end in something
 like `tree-sitter-<name>`.
+
+### Security
+
+This tool clones, compiles, and executes code from a variety of
+sources.  So the usual disclaimers apply regarding running code that
+have been written by others.
+
+There are at least two contexts that are relevant:
+
+* Using this tool to generate the web directory
+* Viewing the served files in one's web browser
+
+For the former (using the tool), in addition to this repository and
+any user-specified grammar repositories (via `grammar-repos.txt`), the
+repositories involved include:
+
+* [emsdk](https://github.com/emscripten-core/emsdk)
+* [janet](https://github.com/janet-lang/janet)
+* [tree-sitter](https://github.com/tree-sitter/tree-sitter)
+
+For the latter (viewing a browser), the `.html`, `.js`, and `.wasm`
+files (or the source used to generate them) originate from:
+
+* user-specified grammar repositories (via `grammar-repos.txt`)
+* [clusterize](https://github.com/NeXTs/Clusterize.js) (actually via a cdn)
+* [codemirror](https://github.com/codemirror/codemirror5) (actually via a cdn)
+* [jquery](https://github.com/jquery/jquery)
+* [tree-sitter](https://github.com/tree-sitter/tree-sitter)
+
+Also worthy of note might be [this
+issue](https://github.com/tree-sitter/tree-sitter/issues/1641) that
+summarizes some important security considerations regarding the use of
+grammar repository code.
 
 ## Footnotes
 
