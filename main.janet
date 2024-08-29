@@ -1,8 +1,8 @@
 # script to prepare a directory with appropriate .js, .html, .wasm, etc.
 # for serving a tree-sitter playground for grammars of one's choice.
 
-# 0. confirm tree-sitter cli version and make ts-repo and ts-bin-path
-#    info (tag + cli version) consistent if necessary
+# 0. confirm tree-sitter cli version and make ts-repo tag info and
+#    ts-bin-path cli version consistent if necessary
 #
 # 1. edit content of the file grammar-repos.txt appropriately
 #
