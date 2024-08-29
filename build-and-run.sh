@@ -30,6 +30,7 @@ fetch_and_build_janet()
   git clone https://github.com/janet-lang/janet \
       --depth 1 --branch "$JANET_TAG" && \
     cd janet && \
+    "$MAKE" clean && \
     "$MAKE" && \
     cd "$dir" || exit
 }
