@@ -170,9 +170,15 @@
                  url] :px)))
 
 # 2. setup emsdk
-(def emsdk-version
+(def emsdk-version-from-ts
   # valid from around 2022-09-06 (pre v0.20.8), see commit: d47713ee
   (string/trim (slurp "tree-sitter/cli/loader/emscripten-version")))
+
+(assert (= emsdk-version emsdk-version-from-ts)
+        (string/format (string "emsdk version mismatch\n"
+                               "* tree-sitter says: %s\n"
+                               "* script specifies: %s")
+                       emsdk-version-from-ts emsdk-version))
 
 (assert (peg/match ~(sequence :d+ "." :d+ "." :d+) emsdk-version)
         (string/format "unexpected emsdk-version: %s" emsdk-version))
