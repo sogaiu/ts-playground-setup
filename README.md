@@ -153,9 +153,9 @@ grammar repository code.
 [1] Testing on non-Linux systems has not yet been performed.  Would be
 happy to hear experience reports :)
 
-[2] The content of the directory `sample-output-dir` could be used as
-a starting point instead of using the code in this repository to
-generate results.
+[2] The content of the directory `sample-output-dir` could be
+copy-modified to one's taste instead of using the code in this
+repository to achieve one's ends :)
 
 [3] See
 [here](https://github.com/sogaiu/ts-questions/blob/master/ts-grammar-repositories.txt)
