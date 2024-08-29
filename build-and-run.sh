@@ -2,6 +2,12 @@
 
 JANET_TAG=v1.35.2
 
+########################################################################
+
+JANET_BIN=./janet/build/janet
+
+########################################################################
+
 # https://stackoverflow.com/a/27776822
 # https://en.wikipedia.org/wiki/Uname#Examples
 case $(uname -s) in
@@ -21,9 +27,9 @@ esac
 
 fetch_and_build_janet()
 {
-  git clone https://github.com/janet-lang/janet && \
+  git clone https://github.com/janet-lang/janet \
+      --depth 1 --branch "$JANET_TAG" && \
     cd janet && \
-    git checkout "$JANET_TAG" && \
     "$MAKE" && \
     cd "$dir" || exit
 }
@@ -44,12 +50,15 @@ read -r answer
 
 case "$answer" in
   y | Y | yes | YES)
-     if [ ! -f ./janet/build/janet ]; then
+     if [ ! -f "$JANET_BIN" ]; then
        fetch_and_build_janet
      fi
      cd "$dir" || exit
-     if [ -f ./janet/build/janet ]; then
-       ./janet/build/janet main.janet
+     if [ -f "$JANET_BIN" ]; then
+       "$JANET_BIN" main.janet
+     else
+       printf "failed to find janet binary at: %s\n" "$JANET_BIN"
+       exit
      fi
     ;;
   *)

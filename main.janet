@@ -85,7 +85,7 @@
 # 1. clone all the things
 (each url repo-urls
   (when (not (os/stat (tail-from-url url)))
-    (os/execute ["git" "clone" url] :px)))
+    (os/execute ["git" "clone" "--depth" "1" url] :px)))
 
 # 2. setup emsdk
 (def emsdk-version
