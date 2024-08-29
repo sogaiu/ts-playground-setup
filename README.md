@@ -1,9 +1,9 @@
 # ts-playground-setup
 
-Prepare a directory of files to serve a tree-sitter playground
-for one or more grammars.
+Prepare a directory of files to serve a tree-sitter playground for one
+or more grammars.
 
-## Background
+## Introduction
 
 This repository provides code to automate the process of assembling a
 tree-sitter playground that works with a user-specified list of
@@ -17,6 +17,9 @@ tools such as:
 * gcc or clang
 * GNU make
 * typical shell such as dash, bash, or zsh
+
+Also, the directory `sample-output-dir` is an example of what can be
+produced with this tool [1].
 
 See the Details section below for information regarding:
 
@@ -32,7 +35,7 @@ Clone this repository:
 git clone https://github.com/sogaiu/ts-playground-setup
 ```
 
-Edit list of grammar repositories [1]:
+Edit list of grammar repositories [2]:
 
 ```
 cd ts-playground-setup
@@ -143,6 +146,11 @@ grammar repository code.
 
 ## Footnotes
 
-[1] See
+[1] The content of the directory `sample-output-dir` could be used as
+a starting point instead of using the code in this repository to
+generate results.
+
+[2] See
 [here](https://github.com/sogaiu/ts-questions/blob/master/ts-grammar-repositories.txt)
 for a list of repository urls.
+
