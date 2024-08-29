@@ -10,7 +10,7 @@ tree-sitter playground that works with a user-specified list of
 grammars.  This might be useful to demo one's grammar or to try out
 multiple grammars in a browser.
 
-It may work on Unix-ish systems / environments that have typical dev
+It may work on Unix-ish systems / environments [1] that have typical dev
 tools such as:
 
 * git
@@ -19,7 +19,7 @@ tools such as:
 * typical shell such as dash, bash, or zsh
 
 Also, the directory `sample-output-dir` is an example of what can be
-produced with this tool [1].
+produced with this tool [2].
 
 See the Details section below for information regarding:
 
@@ -37,7 +37,7 @@ Clone this repository:
 git clone https://github.com/sogaiu/ts-playground-setup
 ```
 
-Edit list of grammar repositories [2]:
+Edit list of grammar repositories [3]:
 
 ```
 cd ts-playground-setup
@@ -150,11 +150,14 @@ grammar repository code.
 
 ## Footnotes
 
-[1] The content of the directory `sample-output-dir` could be used as
+[1] Testing on non-Linux systems has not yet been performed.  Would be
+happy to hear experience reports :)
+
+[2] The content of the directory `sample-output-dir` could be used as
 a starting point instead of using the code in this repository to
 generate results.
 
-[2] See
+[3] See
 [here](https://github.com/sogaiu/ts-questions/blob/master/ts-grammar-repositories.txt)
 for a list of repository urls.
 
