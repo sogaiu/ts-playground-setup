@@ -1,24 +1,44 @@
 # script to prepare a directory with appropriate .js, .html, .wasm, etc.
 # for serving a tree-sitter playground for grammars of one's choice.
 
-# 0. edit content of the file grammar-repos.txt appropriately
+# 0. confirm tree-sitter cli version and make ts-repo and ts-bin-path
+#    info (tag + cli version) consistent if necessary
 #
-# 1. run this script using janet.
+# 1. edit content of the file grammar-repos.txt appropriately
 #
-# 2. cd to the web directory and try serving the web pages and viewing
+# 2. run this script using janet.
+#
+# 3. cd to the web directory and try serving the web pages and viewing
 #    via a browser.  with python3, one can do `python3 -m http.server`
 
 ########################################################################
 
-# paths and urls that likely can stay the same
+(def ts-repo
+  ["https://github.com/tree-sitter/tree-sitter"
+   #"v0.20.9"
+   #"v0.22.2"
+   #"v0.22.6"
+   "v0.23.0"
+   ])
+
+# name or path to tree-sitter binary
+(def ts-bin-path
+  "tree-sitter"
+  #"tree-sitter.0.20.9"
+  #"tree-sitter.0.22.2"
+  #"tree-sitter.0.22.6"
+  #"tree-sitter.0.23.0"
+  )
+
+(def emsdk-repo
+  ["https://github.com/emscripten-core/emsdk"
+   "main"])
+
+########################################################################
+
+# output path
 
 (def web-root "web")
-
-(def ts-repo-url
-  "https://github.com/tree-sitter/tree-sitter")
-
-(def emsdk-repo-url
-  "https://github.com/emscripten-core/emsdk")
 
 ########################################################################
 
@@ -59,6 +79,38 @@
 
   )
 
+(defn ts-version
+  []
+  (with [of (file/temp)]
+    (os/execute [ts-bin-path "--version"] :px {:out of})
+    (file/seek of :set 0)
+    # e.g. tree-sitter 0.23.0 (12fb31826b8469cc7b9788e72bceee5af1cf0977)
+    (def output (->> (file/read of :all)
+                     string/trim
+                     (string/split " ")))
+    #
+    (map scan-number (string/split "." (get output 1)))))
+
+(comment
+
+  (ts-version)
+  # = >
+  @[0 23 0]
+
+  )
+
+(defn ts-build-wasm
+  [env]
+  (def [major minor patch] (ts-version))
+  (def args
+    # XXX: don't enable yet
+    # plan is for v0.24.0 to remove build-wasm apparently
+    #(if (and (zero? major) (<= minor 23))
+      ["build-wasm"]
+    #  ["build" "--wasm"])
+    )
+  (os/execute [ts-bin-path ;args] :pex env))
+
 ########################################################################
 
 (def repo-root-dir (os/cwd))
@@ -67,25 +119,30 @@
   (let [gr "grammar-repos.txt"]
     (when (os/stat gr)
       (def content (string/trim (slurp gr)))
-      (def info @[])
+      (def repo-info @[])
       (each line (string/split "\n" content)
         (when (string/has-prefix? "https://" line)
-          (array/push info
+          (array/push repo-info
                       (string/split " " (string/trim line)))))
-      (when (empty? info)
+      (when (empty? repo-info)
         (errorf "failed to find repo info in %s" gr))
-      info)))
+      repo-info)))
 
-(def repo-urls
-  @[ts-repo-url
-    emsdk-repo-url
-    ;(map first grammar-repos)
+(def repos
+  @[ts-repo
+    emsdk-repo
+    ;(map |[(first $)] grammar-repos)
     ])
 
 # 1. clone all the things
-(each url repo-urls
+(each [url branch] repos
   (when (not (os/stat (tail-from-url url)))
-    (os/execute ["git" "clone" "--depth" "1" url] :px)))
+    (os/execute ["git" "clone"
+                 "--depth" "1"
+                 (splice (if branch
+                           ["--branch" branch]
+                           []))
+                 url] :px)))
 
 # 2. setup emsdk
 (def emsdk-version
@@ -131,9 +188,9 @@
     (when extra
       (os/cd extra))
     # make sure src/parser.c and friends exist
-    (os/execute ["tree-sitter" "generate" "--no-bindings"] :px)
+    (os/execute [ts-bin-path "generate" "--no-bindings"] :px)
     # build wasm files
-    (os/execute ["tree-sitter" "build" "--wasm"] :pex env-with-emcc)
+    (ts-build-wasm env-with-emcc)
     # copy built wasm into web-root
     (def wasm-name (string "tree-sitter-" name ".wasm"))
     (spit (string repo-root-dir "/" web-root "/" wasm-name)
