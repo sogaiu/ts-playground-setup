@@ -8,8 +8,14 @@ or more grammars, like
 
 This repository provides code to automate the process of assembling a
 tree-sitter playground that works with a user-specified list of
-grammars.  This might be useful to demo one's grammar via a web server
-or to try out multiple grammars in a browser.
+grammars.
+
+This might be useful in the following sorts of cases:
+
+* Demo one's grammar via a web server...well, because :)
+* Switch between multiple alternate similar grammars for comparison [0]
+* Make it easier for folks to experience / investigate an issue with
+  your grammar
 
 It may work on Unix-ish systems / environments [1] that have typical dev
 tools such as:
@@ -153,6 +159,9 @@ summarizes some important security considerations regarding the use of
 grammar repository code.
 
 ## Footnotes
+
+[0] For this to work, I think the grammars need to have different
+names.
 
 [1] Testing on non-Linux systems has not yet been performed.  Would be
 happy to hear experience reports :)
