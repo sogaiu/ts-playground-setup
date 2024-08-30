@@ -465,47 +465,63 @@
 
 ########################################################################
 
+(defmacro begin
+  []
+  ~(var step -1))
+
+(defmacro remark
+  [message]
+  ~(plogf (string "%d. " ,message) (++ step)))
+
+(defmacro end
+  []
+  ~(printf "Total steps taken: %d" step))
+
+########################################################################
+
 (defn main
   [& argv]
   (def conf @{:root-dir (os/cwd)
               :emsdk-version emsdk-version
               :web-root web-root})
 
-  (var step -1)
+  (begin)
 
-  (plogf "%d. Checking preliminaries" (++ step))
+  (remark "Checking preliminaries")
   (check-prelims conf)
 
-  (plogf "%d. Detecting grammars" (++ step))
+  (remark "Detecting grammars")
   (def grammar-repos (detect-grammars conf))
 
-  (plogf "%d. Cloning repositories" (++ step))
+  (remark "Cloning repositories")
   (clone-repos conf
                @[ts-repo
                  emsdk-repo
                  ;(map |[(first $)] grammar-repos)])
 
-  (plogf "%d. Setting up emsdk" (++ step))
+  (remark "Setting up emsdk")
   (def env-with-emcc (setup-emsdk conf))
 
-  (plogf "%d. Preparing web root skeleton" (++ step))
+  (remark "Preparing web root skeleton")
   (make-web-skeleton conf)
 
-  (plogf "%d. Building and copying grammar .wasm files" (++ step))
+  (remark "Building and copying grammar .wasm files")
   (prepare-grammar-wasms conf grammar-repos env-with-emcc)
 
-  (plogf "%d. Building and copying playground files" (++ step))
+  (remark "Building and copying playground files")
   (prepare-and-grab-playground-bits conf env-with-emcc)
 
-  (plogf "%d. Scanning and patching playground.html" (++ step))
+  (remark "Scanning and patching playground.html")
   (def [js-urls css-urls]
     (scan-and-patch-playground-html conf grammar-repos))
 
-  (plogf "%d. Fetching external .css files" (++ step))
+  (remark "Fetching external .css files")
   (fetch-css conf css-urls)
 
-  (plogf "%d. Fetching external .js files" (++ step))
+  (remark "Fetching external .js files")
   (fetch-js conf js-urls)
+
+  (end)
 
   (report conf))
 
