@@ -275,25 +275,26 @@
 (print-and-logf "4. Building and copying grammar .wasm files")
 
 (each [url extra] grammar-repos
-  (defer (os/cd repo-root-dir)
-    (def local-dir (tail-from-url url))
-    (def name
-      (dir-to-name (if extra
-                     extra
-                     local-dir)))
-    (os/cd local-dir)
-    (when extra
-      (os/cd extra))
-    # make sure src/parser.c and friends exist
-    (print-and-logf "* Generating parser.c and friends for %s..." name)
-    (do-command [ts-bin-path "generate" "--no-bindings"] :p)
-    # build wasm files
-    (print-and-logf "* Building .wasm for %s..." name)
-    (ts-build-wasm env-with-emcc)
-    # copy built wasm into web-root
-    (def wasm-name (string "tree-sitter-" name ".wasm"))
-    (spit (string repo-root-dir "/" web-root "/assets/wasm/" wasm-name)
-          (slurp wasm-name))))
+  (def local-dir (tail-from-url url))
+  (def name (dir-to-name (if extra
+                           extra
+                           local-dir)))
+  (def wasm-name (string "tree-sitter-" name ".wasm"))
+  (def wasm-path
+    (string repo-root-dir "/" web-root "/assets/wasm/" wasm-name))
+  (when (not (os/stat wasm-path))
+    (defer (os/cd repo-root-dir)
+      (os/cd local-dir)
+      (when extra
+        (os/cd extra))
+      # make sure src/parser.c and friends exist
+      (print-and-logf "* Generating parser.c and friends for %s..." name)
+      (do-command [ts-bin-path "generate" "--no-bindings"] :p)
+      # build wasm files
+      (print-and-logf "* Building .wasm for %s..." name)
+      (ts-build-wasm env-with-emcc)
+      # copy built wasm into web-root
+      (spit wasm-path (slurp wasm-name)))))
 
 (print-and-logf "5. Building and copying playground web bits")
 
