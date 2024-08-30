@@ -133,7 +133,7 @@ so those may not work with the code in this repository either.
 
 This tool clones, compiles, and executes code from a variety of
 sources.  So the usual disclaimers apply regarding running code that
-have been written by others.
+has been written by others.
 
 There are at least two contexts that are relevant:
 
@@ -148,8 +148,8 @@ repositories involved include:
 * [janet](https://github.com/janet-lang/janet)
 * [tree-sitter](https://github.com/tree-sitter/tree-sitter)
 
-For the latter (viewing a browser), the `.html`, `.js`, and `.wasm`
-files (or the source used to generate them) originate from:
+For the latter (viewing via a browser), the `.html`, `.js`, and
+`.wasm` files (or the source used to generate them) originate from:
 
 * user-specified grammar repositories (via `grammar-repos.txt`)
 * [clusterize](https://github.com/NeXTs/Clusterize.js) (actually via a cdn)
