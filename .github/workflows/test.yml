@@ -16,6 +16,8 @@ jobs:
     steps:
       - name: Set up tree-sitter
         uses: tree-sitter/setup-action/cli@v1
+        with:
+          tree-sitter-ref: v0.23.0
       - name: Checkout the repository
         uses: actions/checkout@v4
       - name: Assemble the web directory
