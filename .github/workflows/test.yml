@@ -1,0 +1,24 @@
+name: Test
+
+on: [push, pull_request]
+
+permissions:
+  contents: read
+
+jobs:
+
+  test-posix:
+    name: Build and test on Linux / macos
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ ubuntu-latest, macos-latest ]
+    steps:
+      - name: Set up tree-sitter
+        uses: tree-sitter/setup-action/cli@v1
+      - name: Checkout the repository
+        uses: actions/checkout@v4
+      - name: Assemble the web directory
+        run: NON_INTERACTIVE=1 sh build-and-run.sh
+      - name: Test
+        run: sh test.sh
