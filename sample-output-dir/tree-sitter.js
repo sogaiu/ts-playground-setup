@@ -25,17 +25,11 @@ var ENVIRONMENT_IS_WORKER = typeof importScripts == "function";
 // also a web environment.
 var ENVIRONMENT_IS_NODE = typeof process == "object" && typeof process.versions == "object" && typeof process.versions.node == "string";
 
-var ENVIRONMENT_IS_SHELL = !ENVIRONMENT_IS_WEB && !ENVIRONMENT_IS_NODE && !ENVIRONMENT_IS_WORKER;
-
-if (Module["ENVIRONMENT"]) {
-  throw new Error("Module.ENVIRONMENT has been deprecated. To force the environment, use the ENVIRONMENT compile-time option (for example, -sENVIRONMENT=web or -sENVIRONMENT=node)");
-}
-
 if (ENVIRONMENT_IS_NODE) {}
 
 // --pre-jses are emitted after the Module integration code, so that they can
 // refer to Module (if they choose; they can also define Module)
-// include: /home/user/src/ts-playground-setup/tree-sitter/lib/binding_web/prefix.js
+// include: tree-sitter/lib/binding_web/prefix.js
 var TreeSitter = function() {
   var initPromise;
   var document = typeof window == "object" ? {
@@ -52,7 +46,7 @@ var TreeSitter = function() {
       if (initPromise) return initPromise;
       Module = Object.assign({}, Module, moduleOptions);
       return initPromise = new Promise(resolveInitPromise => {
-        // end include: /home/user/src/ts-playground-setup/tree-sitter/lib/binding_web/prefix.js
+        // end include: tree-sitter/lib/binding_web/prefix.js
         // Sometimes an existing Module object exists with properties
         // meant to overwrite the default module functionality. Here
         // we collect those properties and reapply _after_ we configure
@@ -75,14 +69,6 @@ var TreeSitter = function() {
         // Hooks that are implemented differently in different runtime environments.
         var readAsync, readBinary;
         if (ENVIRONMENT_IS_NODE) {
-          if (typeof process == "undefined" || !process.release || process.release.name !== "node") throw new Error("not compiled for this environment (did you build to HTML and try to run it not on the web, or set ENVIRONMENT to something - like node - and run it someplace else - like on the web?)");
-          var nodeVersion = process.versions.node;
-          var numericVersion = nodeVersion.split(".").slice(0, 3);
-          numericVersion = (numericVersion[0] * 1e4) + (numericVersion[1] * 100) + (numericVersion[2].split("-")[0] * 1);
-          var minVersion = 16e4;
-          if (numericVersion < 16e4) {
-            throw new Error("This emscripten-generated code requires node v16.0.0 (detected v" + nodeVersion + ")");
-          }
           // These modules will usually be used on Node.js. Load them eagerly to avoid
           // the complexity of lazy-loading.
           var fs = require("fs");
@@ -94,7 +80,6 @@ var TreeSitter = function() {
             // necessary in that case, the path should already be absolute.
             filename = isFileURI(filename) ? new URL(filename) : nodePath.normalize(filename);
             var ret = fs.readFileSync(filename);
-            assert(ret.buffer);
             return ret;
           };
           readAsync = (filename, binary = true) => {
@@ -118,8 +103,6 @@ var TreeSitter = function() {
             process.exitCode = status;
             throw toThrow;
           };
-        } else if (ENVIRONMENT_IS_SHELL) {
-          if ((typeof process == "object" && typeof require === "function") || typeof window == "object" || typeof importScripts == "function") throw new Error("not compiled for this environment (did you build to HTML and try to run it not on the web, or set ENVIRONMENT to something - like node - and run it someplace else - like on the web?)");
         } else // Note that this includes Node.js workers when relevant (pthreads is enabled).
         // Node.js workers are detected as a combination of ENVIRONMENT_IS_WORKER and
         // ENVIRONMENT_IS_NODE.
@@ -142,7 +125,6 @@ var TreeSitter = function() {
           } else {
             scriptDirectory = scriptDirectory.substr(0, scriptDirectory.replace(/[?#].*/, "").lastIndexOf("/") + 1);
           }
-          if (!(typeof window == "object" || typeof importScripts == "function")) throw new Error("not compiled for this environment (did you build to HTML and try to run it not on the web, or set ENVIRONMENT to something - like node - and run it someplace else - like on the web?)");
           {
             // include: web_or_worker_shell_read.js
             if (ENVIRONMENT_IS_WORKER) {
@@ -186,9 +168,7 @@ var TreeSitter = function() {
             };
           }
         } else // end include: web_or_worker_shell_read.js
-        {
-          throw new Error("environment detection error");
-        }
+        {}
         var out = Module["print"] || console.log.bind(console);
         var err = Module["printErr"] || console.error.bind(console);
         // Merge back in the overrides
@@ -196,41 +176,14 @@ var TreeSitter = function() {
         // Free the object hierarchy contained in the overrides, this lets the GC
         // reclaim data used.
         moduleOverrides = null;
-        checkIncomingModuleAPI();
         // Emit code to handle expected values on the Module object. This applies Module.x
         // to the proper local x. This has two benefits: first, we only emit it if it is
         // expected to arrive, and second, by using a local everywhere else that can be
         // minified.
         if (Module["arguments"]) arguments_ = Module["arguments"];
-        legacyModuleProp("arguments", "arguments_");
         if (Module["thisProgram"]) thisProgram = Module["thisProgram"];
-        legacyModuleProp("thisProgram", "thisProgram");
         if (Module["quit"]) quit_ = Module["quit"];
-        legacyModuleProp("quit", "quit_");
         // perform assertions in shell.js after we set up out() and err(), as otherwise if an assertion fails it cannot print the message
-        // Assertions on removed incoming Module JS APIs.
-        assert(typeof Module["memoryInitializerPrefixURL"] == "undefined", "Module.memoryInitializerPrefixURL option was removed, use Module.locateFile instead");
-        assert(typeof Module["pthreadMainPrefixURL"] == "undefined", "Module.pthreadMainPrefixURL option was removed, use Module.locateFile instead");
-        assert(typeof Module["cdInitializerPrefixURL"] == "undefined", "Module.cdInitializerPrefixURL option was removed, use Module.locateFile instead");
-        assert(typeof Module["filePackagePrefixURL"] == "undefined", "Module.filePackagePrefixURL option was removed, use Module.locateFile instead");
-        assert(typeof Module["read"] == "undefined", "Module.read option was removed");
-        assert(typeof Module["readAsync"] == "undefined", "Module.readAsync option was removed (modify readAsync in JS)");
-        assert(typeof Module["readBinary"] == "undefined", "Module.readBinary option was removed (modify readBinary in JS)");
-        assert(typeof Module["setWindowTitle"] == "undefined", "Module.setWindowTitle option was removed (modify emscripten_set_window_title in JS)");
-        assert(typeof Module["TOTAL_MEMORY"] == "undefined", "Module.TOTAL_MEMORY has been renamed Module.INITIAL_MEMORY");
-        legacyModuleProp("asm", "wasmExports");
-        legacyModuleProp("readAsync", "readAsync");
-        legacyModuleProp("readBinary", "readBinary");
-        legacyModuleProp("setWindowTitle", "setWindowTitle");
-        var IDBFS = "IDBFS is no longer included by default; build with -lidbfs.js";
-        var PROXYFS = "PROXYFS is no longer included by default; build with -lproxyfs.js";
-        var WORKERFS = "WORKERFS is no longer included by default; build with -lworkerfs.js";
-        var FETCHFS = "FETCHFS is no longer included by default; build with -lfetchfs.js";
-        var ICASEFS = "ICASEFS is no longer included by default; build with -licasefs.js";
-        var JSFILEFS = "JSFILEFS is no longer included by default; build with -ljsfilefs.js";
-        var OPFS = "OPFS is no longer included by default; build with -lopfs.js";
-        var NODEFS = "NODEFS is no longer included by default; build with -lnodefs.js";
-        assert(!ENVIRONMENT_IS_SHELL, "shell environment detected but not enabled at build time.  Add `shell` to `-sENVIRONMENT` to enable.");
         // end include: shell.js
         // include: preamble.js
         // === Preamble library stuff ===
@@ -244,77 +197,6 @@ var TreeSitter = function() {
         var dynamicLibraries = Module["dynamicLibraries"] || [];
         var wasmBinary;
         if (Module["wasmBinary"]) wasmBinary = Module["wasmBinary"];
-        legacyModuleProp("wasmBinary", "wasmBinary");
-        if (typeof WebAssembly != "object") {
-          err("no native wasm support detected");
-        }
-        // include: runtime_safe_heap.js
-        /** @param {number|boolean=} isFloat */ function getSafeHeapType(bytes, isFloat) {
-          switch (bytes) {
-           case 1:
-            return "i8";
-
-           case 2:
-            return "i16";
-
-           case 4:
-            return isFloat ? "float" : "i32";
-
-           case 8:
-            return isFloat ? "double" : "i64";
-
-           default:
-            abort(`getSafeHeapType() invalid bytes=${bytes}`);
-          }
-        }
-        /** @param {number|boolean=} isFloat */ function SAFE_HEAP_STORE(dest, value, bytes, isFloat) {
-          if (dest <= 0) abort(`segmentation fault storing ${bytes} bytes to address ${dest}`);
-          if (dest % bytes !== 0) abort(`alignment error storing to address ${dest}, which was expected to be aligned to a multiple of ${bytes}`);
-          if (runtimeInitialized) {
-            var brk = _sbrk(0);
-            if (dest + bytes > brk) abort(`segmentation fault, exceeded the top of the available dynamic heap when storing ${bytes} bytes to address ${dest}. DYNAMICTOP=${brk}`);
-            if (brk < _emscripten_stack_get_base()) abort(`brk >= _emscripten_stack_get_base() (brk=${brk}, _emscripten_stack_get_base()=${_emscripten_stack_get_base()})`);
-            // sbrk-managed memory must be above the stack
-            if (brk > wasmMemory.buffer.byteLength) abort(`brk <= wasmMemory.buffer.byteLength (brk=${brk}, wasmMemory.buffer.byteLength=${wasmMemory.buffer.byteLength})`);
-          }
-          setValue_safe(dest, value, getSafeHeapType(bytes, isFloat));
-          return value;
-        }
-        function SAFE_HEAP_STORE_D(dest, value, bytes) {
-          return SAFE_HEAP_STORE(dest, value, bytes, true);
-        }
-        /** @param {number|boolean=} isFloat */ function SAFE_HEAP_LOAD(dest, bytes, unsigned, isFloat) {
-          if (dest <= 0) abort(`segmentation fault loading ${bytes} bytes from address ${dest}`);
-          if (dest % bytes !== 0) abort(`alignment error loading from address ${dest}, which was expected to be aligned to a multiple of ${bytes}`);
-          if (runtimeInitialized) {
-            var brk = _sbrk(0);
-            if (dest + bytes > brk) abort(`segmentation fault, exceeded the top of the available dynamic heap when loading ${bytes} bytes from address ${dest}. DYNAMICTOP=${brk}`);
-            if (brk < _emscripten_stack_get_base()) abort(`brk >= _emscripten_stack_get_base() (brk=${brk}, _emscripten_stack_get_base()=${_emscripten_stack_get_base()})`);
-            // sbrk-managed memory must be above the stack
-            if (brk > wasmMemory.buffer.byteLength) abort(`brk <= wasmMemory.buffer.byteLength (brk=${brk}, wasmMemory.buffer.byteLength=${wasmMemory.buffer.byteLength})`);
-          }
-          var type = getSafeHeapType(bytes, isFloat);
-          var ret = getValue_safe(dest, type);
-          if (unsigned) ret = unSign(ret, parseInt(type.substr(1), 10));
-          return ret;
-        }
-        function SAFE_HEAP_LOAD_D(dest, bytes, unsigned) {
-          return SAFE_HEAP_LOAD(dest, bytes, unsigned, true);
-        }
-        function SAFE_FT_MASK(value, mask) {
-          var ret = value & mask;
-          if (ret !== value) {
-            abort(`Function table mask error: function pointer is ${value} which is masked by ${mask}, the likely cause of this is that the function pointer is being called by the wrong type.`);
-          }
-          return ret;
-        }
-        function segfault() {
-          abort("segmentation fault");
-        }
-        function alignfault() {
-          abort("alignment fault");
-        }
-        // end include: runtime_safe_heap.js
         // Wasm globals
         var wasmMemory;
         //========================================
@@ -327,19 +209,8 @@ var TreeSitter = function() {
         // NOTE: This is also used as the process return code code in shell environments
         // but only when noExitRuntime is false.
         var EXITSTATUS;
-        // In STRICT mode, we only define assert() when ASSERTIONS is set.  i.e. we
-        // don't define it at all in release modes.  This matches the behaviour of
-        // MINIMAL_RUNTIME.
-        // TODO(sbc): Make this the default even without STRICT enabled.
-        /** @type {function(*, string=)} */ function assert(condition, text) {
-          if (!condition) {
-            abort("Assertion failed" + (text ? ": " + text : ""));
-          }
-        }
-        // We used to include malloc/free by default in the past. Show a helpful error in
-        // builds with assertions.
         // Memory management
-        var HEAP, /** @type {!Int8Array} */ HEAP8, /** @type {!Uint8Array} */ HEAPU8, /** @type {!Int16Array} */ HEAP16, /** @type {!Uint16Array} */ HEAPU16, /** @type {!Int32Array} */ HEAP32, /** @type {!Uint32Array} */ HEAPU32, /** @type {!Float32Array} */ HEAPF32, /** @type {!Float64Array} */ HEAPF64;
+        var /** @type {!Int8Array} */ HEAP8, /** @type {!Uint8Array} */ HEAPU8, /** @type {!Int16Array} */ HEAP16, /** @type {!Uint16Array} */ HEAPU16, /** @type {!Int32Array} */ HEAP32, /** @type {!Uint32Array} */ HEAPU32, /** @type {!Float32Array} */ HEAPF32, /** @type {!Float64Array} */ HEAPF64;
         var HEAP_DATA_VIEW;
         // include: runtime_shared.js
         function updateMemoryViews() {
@@ -355,8 +226,6 @@ var TreeSitter = function() {
           Module["HEAPF64"] = HEAPF64 = new Float64Array(b);
         }
         // end include: runtime_shared.js
-        assert(!Module["STACK_SIZE"], "STACK_SIZE can no longer be set at runtime.  Use -sSTACK_SIZE at link time");
-        assert(typeof Int32Array != "undefined" && typeof Float64Array !== "undefined" && Int32Array.prototype.subarray != undefined && Int32Array.prototype.set != undefined, "JS engine does not provide full typed array support");
         // In non-standalone/normal mode, we create the memory here.
         // include: runtime_init_memory.js
         // Create the wasm memory. (Note: this only applies if IMPORTED_MEMORY is defined)
@@ -365,8 +234,6 @@ var TreeSitter = function() {
           wasmMemory = Module["wasmMemory"];
         } else {
           var INITIAL_MEMORY = Module["INITIAL_MEMORY"] || 33554432;
-          legacyModuleProp("INITIAL_MEMORY", "INITIAL_MEMORY");
-          assert(INITIAL_MEMORY >= 65536, "INITIAL_MEMORY should be larger than STACK_SIZE, was " + INITIAL_MEMORY + "! (STACK_SIZE=" + 65536 + ")");
           wasmMemory = new WebAssembly.Memory({
             "initial": INITIAL_MEMORY / 65536,
             // In theory we should not need to emit the maximum if we want "unlimited"
@@ -380,46 +247,14 @@ var TreeSitter = function() {
         updateMemoryViews();
         // end include: runtime_init_memory.js
         // include: runtime_stack_check.js
-        // Initializes the stack cookie. Called at the startup of main and at the startup of each thread in pthreads mode.
-        function writeStackCookie() {
-          var max = _emscripten_stack_get_end();
-          assert((max & 3) == 0);
-          // If the stack ends at address zero we write our cookies 4 bytes into the
-          // stack.  This prevents interference with SAFE_HEAP and ASAN which also
-          // monitor writes to address zero.
-          if (max == 0) {
-            max += 4;
-          }
-          // The stack grow downwards towards _emscripten_stack_get_end.
-          // We write cookies to the final two words in the stack and detect if they are
-          // ever overwritten.
-          LE_HEAP_STORE_U32(((max) >> 2) * 4, 34821223);
-          LE_HEAP_STORE_U32((((max) + (4)) >> 2) * 4, 2310721022);
-        }
-        function checkStackCookie() {
-          if (ABORT) return;
-          var max = _emscripten_stack_get_end();
-          // See writeStackCookie().
-          if (max == 0) {
-            max += 4;
-          }
-          var cookie1 = LE_HEAP_LOAD_U32(((max) >> 2) * 4);
-          var cookie2 = LE_HEAP_LOAD_U32((((max) + (4)) >> 2) * 4);
-          if (cookie1 != 34821223 || cookie2 != 2310721022) {
-            abort(`Stack overflow! Stack cookie has been overwritten at ${ptrToString(max)}, expected hex dwords 0x89BACDFE and 0x2135467, but received ${ptrToString(cookie2)} ${ptrToString(cookie1)}`);
-          }
-        }
         // end include: runtime_stack_check.js
         // include: runtime_assertions.js
-        // Endianness check
         // end include: runtime_assertions.js
         var __ATPRERUN__ = [];
         // functions called before the runtime is initialized
         var __ATINIT__ = [];
         // functions called during startup
         var __ATMAIN__ = [];
-        // functions called when main() is to be run
-        var __ATEXIT__ = [];
         // functions called during shutdown
         var __ATPOSTRUN__ = [];
         // functions called after the main() is called
@@ -435,18 +270,14 @@ var TreeSitter = function() {
           callRuntimeCallbacks(__ATPRERUN__);
         }
         function initRuntime() {
-          assert(!runtimeInitialized);
           runtimeInitialized = true;
-          checkStackCookie();
           callRuntimeCallbacks(__RELOC_FUNCS__);
           callRuntimeCallbacks(__ATINIT__);
         }
         function preMain() {
-          checkStackCookie();
           callRuntimeCallbacks(__ATMAIN__);
         }
         function postRun() {
-          checkStackCookie();
           if (Module["postRun"]) {
             if (typeof Module["postRun"] == "function") Module["postRun"] = [ Module["postRun"] ];
             while (Module["postRun"].length) {
@@ -461,10 +292,6 @@ var TreeSitter = function() {
         function addOnInit(cb) {
           __ATINIT__.unshift(cb);
         }
-        function addOnPreMain(cb) {
-          __ATMAIN__.unshift(cb);
-        }
-        function addOnExit(cb) {}
         function addOnPostRun(cb) {
           __ATPOSTRUN__.unshift(cb);
         }
@@ -473,10 +300,6 @@ var TreeSitter = function() {
         // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math/fround
         // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math/clz32
         // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math/trunc
-        assert(Math.imul, "This browser does not support Math.imul(), build with LEGACY_VM_SUPPORT or POLYFILL_OLD_MATH_FUNCTIONS to add in a polyfill");
-        assert(Math.fround, "This browser does not support Math.fround(), build with LEGACY_VM_SUPPORT or POLYFILL_OLD_MATH_FUNCTIONS to add in a polyfill");
-        assert(Math.clz32, "This browser does not support Math.clz32(), build with LEGACY_VM_SUPPORT or POLYFILL_OLD_MATH_FUNCTIONS to add in a polyfill");
-        assert(Math.trunc, "This browser does not support Math.trunc(), build with LEGACY_VM_SUPPORT or POLYFILL_OLD_MATH_FUNCTIONS to add in a polyfill");
         // end include: runtime_math.js
         // A counter of dependencies for calling run(). If we need to
         // do asynchronous work before running, increment this and
@@ -489,54 +312,16 @@ var TreeSitter = function() {
         var runDependencyWatcher = null;
         var dependenciesFulfilled = null;
         // overridden to take different actions when all run dependencies are fulfilled
-        var runDependencyTracking = {};
         function getUniqueRunDependency(id) {
-          var orig = id;
-          while (1) {
-            if (!runDependencyTracking[id]) return id;
-            id = orig + Math.random();
-          }
+          return id;
         }
         function addRunDependency(id) {
           runDependencies++;
           Module["monitorRunDependencies"]?.(runDependencies);
-          if (id) {
-            assert(!runDependencyTracking[id]);
-            runDependencyTracking[id] = 1;
-            if (runDependencyWatcher === null && typeof setInterval != "undefined") {
-              // Check for missing dependencies every few seconds
-              runDependencyWatcher = setInterval(() => {
-                if (ABORT) {
-                  clearInterval(runDependencyWatcher);
-                  runDependencyWatcher = null;
-                  return;
-                }
-                var shown = false;
-                for (var dep in runDependencyTracking) {
-                  if (!shown) {
-                    shown = true;
-                    err("still waiting on run dependencies:");
-                  }
-                  err(`dependency: ${dep}`);
-                }
-                if (shown) {
-                  err("(end of list)");
-                }
-              }, 1e4);
-            }
-          } else {
-            err("warning: run dependency added without ID");
-          }
         }
         function removeRunDependency(id) {
           runDependencies--;
           Module["monitorRunDependencies"]?.(runDependencies);
-          if (id) {
-            assert(runDependencyTracking[id]);
-            delete runDependencyTracking[id];
-          } else {
-            err("warning: run dependency removed without ID");
-          }
           if (runDependencies == 0) {
             if (runDependencyWatcher !== null) {
               clearInterval(runDependencyWatcher);
@@ -557,6 +342,7 @@ var TreeSitter = function() {
           err(what);
           ABORT = true;
           EXITSTATUS = 1;
+          what += ". Build with -sASSERTIONS for more info.";
           // Use a wasm runtime error, because a JS error might be seen as a foreign
           // exception, which means we'd run destructors on it. We need the error to
           // simply make the program stop.
@@ -577,41 +363,6 @@ var TreeSitter = function() {
         }
         // include: memoryprofiler.js
         // end include: memoryprofiler.js
-        // show errors on likely calls to FS when it was not included
-        var FS = {
-          error() {
-            abort("Filesystem support (FS) was not included. The problem is that you are using files from JS, but files were not used from C/C++, so filesystem support was not auto-included. You can force-include filesystem support with -sFORCE_FILESYSTEM");
-          },
-          init() {
-            FS.error();
-          },
-          createDataFile() {
-            FS.error();
-          },
-          createPreloadedFile() {
-            FS.error();
-          },
-          createLazyFile() {
-            FS.error();
-          },
-          open() {
-            FS.error();
-          },
-          mkdev() {
-            FS.error();
-          },
-          registerDevice() {
-            FS.error();
-          },
-          analyzePath() {
-            FS.error();
-          },
-          ErrnoError() {
-            FS.error();
-          }
-        };
-        Module["FS_createDataFile"] = FS.createDataFile;
-        Module["FS_createPreloadedFile"] = FS.createPreloadedFile;
         // include: URIUtils.js
         // Prefix of data URIs emitted by SINGLE_FILE and related options.
         var dataURIPrefix = "data:application/octet-stream;base64,";
@@ -624,16 +375,6 @@ var TreeSitter = function() {
  * @noinline
  */ var isFileURI = filename => filename.startsWith("file://");
         // end include: URIUtils.js
-        function createExportWrapper(name, nargs) {
-          return (...args) => {
-            assert(runtimeInitialized, `native function \`${name}\` called before runtime initialization`);
-            var f = wasmExports[name];
-            assert(f, `exported native function \`${name}\` not found`);
-            // Only assert for too many arguments. Too few can be valid since the missing arguments will be zero filled.
-            assert(args.length <= nargs, `native function \`${name}\` called with ${args.length} args but expects ${nargs}`);
-            return f(...args);
-          };
-        }
         // include: runtime_exceptions.js
         // end include: runtime_exceptions.js
         function findWasmBinary() {
@@ -666,10 +407,6 @@ var TreeSitter = function() {
         function instantiateArrayBuffer(binaryFile, imports, receiver) {
           return getBinaryPromise(binaryFile).then(binary => WebAssembly.instantiate(binary, imports)).then(receiver, reason => {
             err(`failed to asynchronously prepare wasm: ${reason}`);
-            // Warn on some common problems.
-            if (isFileURI(wasmBinaryFile)) {
-              err(`warning: Loading from a file URI (${wasmBinaryFile}) is not supported in most browsers. See https://emscripten.org/docs/getting_started/FAQ.html#how-do-i-run-a-local-webserver-for-testing-why-does-my-program-stall-in-downloading-or-preparing`);
-            }
             abort(reason);
           });
         }
@@ -734,15 +471,9 @@ var TreeSitter = function() {
           // wait for the pthread pool (if any)
           addRunDependency("wasm-instantiate");
           // Prefer streaming instantiation if available.
-          // Async compilation can be confusing when an error on the page overwrites Module
-          // (for example, if the order of elements is wrong, and the one defining Module is
-          // later), so we save Module and check it later.
-          var trueModule = Module;
           function receiveInstantiationResult(result) {
             // 'result' is a ResultObject object which has both the module and instance.
             // receiveInstance() will swap in the exports (to Module.asm) so they can be called
-            assert(Module === trueModule, "the Module object should not be replaced during async compilation - perhaps the order of HTML elements is wrong?");
-            trueModule = null;
             receiveInstance(result["instance"], result["module"]);
           }
           // User shell pages can write their own Module.instantiateWasm = function(imports, successCallback) callback
@@ -763,92 +494,7 @@ var TreeSitter = function() {
           instantiateAsync(wasmBinary, wasmBinaryFile, info, receiveInstantiationResult);
           return {};
         }
-        // Globals used by JS i64 conversions (see makeSetValue)
-        var tempDouble;
-        var tempI64;
         // include: runtime_debug.js
-        function legacyModuleProp(prop, newName, incoming = true) {
-          if (!Object.getOwnPropertyDescriptor(Module, prop)) {
-            Object.defineProperty(Module, prop, {
-              configurable: true,
-              get() {
-                let extra = incoming ? " (the initial value can be provided on Module, but after startup the value is only looked for on a local variable of that name)" : "";
-                abort(`\`Module.${prop}\` has been replaced by \`${newName}\`` + extra);
-              }
-            });
-          }
-        }
-        function ignoredModuleProp(prop) {
-          if (Object.getOwnPropertyDescriptor(Module, prop)) {
-            abort(`\`Module.${prop}\` was supplied but \`${prop}\` not included in INCOMING_MODULE_JS_API`);
-          }
-        }
-        // forcing the filesystem exports a few things by default
-        function isExportedByForceFilesystem(name) {
-          return name === "FS_createPath" || name === "FS_createDataFile" || name === "FS_createPreloadedFile" || name === "FS_unlink" || name === "addRunDependency" || // The old FS has some functionality that WasmFS lacks.
-          name === "FS_createLazyFile" || name === "FS_createDevice" || name === "removeRunDependency";
-        }
-        function missingGlobal(sym, msg) {
-          if (typeof globalThis != "undefined") {
-            Object.defineProperty(globalThis, sym, {
-              configurable: true,
-              get() {
-                warnOnce(`\`${sym}\` is not longer defined by emscripten. ${msg}`);
-                return undefined;
-              }
-            });
-          }
-        }
-        missingGlobal("buffer", "Please use HEAP8.buffer or wasmMemory.buffer");
-        missingGlobal("asm", "Please use wasmExports instead");
-        function missingLibrarySymbol(sym) {
-          if (typeof globalThis != "undefined" && !Object.getOwnPropertyDescriptor(globalThis, sym)) {
-            Object.defineProperty(globalThis, sym, {
-              configurable: true,
-              get() {
-                // Can't `abort()` here because it would break code that does runtime
-                // checks.  e.g. `if (typeof SDL === 'undefined')`.
-                var msg = `\`${sym}\` is a library symbol and not included by default; add it to your library.js __deps or to DEFAULT_LIBRARY_FUNCS_TO_INCLUDE on the command line`;
-                // DEFAULT_LIBRARY_FUNCS_TO_INCLUDE requires the name as it appears in
-                // library.js, which means $name for a JS name with no prefix, or name
-                // for a JS name like _name.
-                var librarySymbol = sym;
-                if (!librarySymbol.startsWith("_")) {
-                  librarySymbol = "$" + sym;
-                }
-                msg += ` (e.g. -sDEFAULT_LIBRARY_FUNCS_TO_INCLUDE='${librarySymbol}')`;
-                if (isExportedByForceFilesystem(sym)) {
-                  msg += ". Alternatively, forcing filesystem support (-sFORCE_FILESYSTEM) can export this for you";
-                }
-                warnOnce(msg);
-                return undefined;
-              }
-            });
-          }
-          // Any symbol that is not included from the JS library is also (by definition)
-          // not exported on the Module object.
-          unexportedRuntimeSymbol(sym);
-        }
-        function unexportedRuntimeSymbol(sym) {
-          if (!Object.getOwnPropertyDescriptor(Module, sym)) {
-            Object.defineProperty(Module, sym, {
-              configurable: true,
-              get() {
-                var msg = `'${sym}' was not exported. add it to EXPORTED_RUNTIME_METHODS (see the Emscripten FAQ)`;
-                if (isExportedByForceFilesystem(sym)) {
-                  msg += ". Alternatively, forcing filesystem support (-sFORCE_FILESYSTEM) can export this for you";
-                }
-                abort(msg);
-              }
-            });
-          }
-        }
-        // Used by XXXXX_DEBUG settings to output debug messages.
-        function dbg(...args) {
-          // TODO(sbc): Make this configurable somehow.  Its not always convenient for
-          // logging to show up as warnings.
-          console.warn(...args);
-        }
         // end include: runtime_debug.js
         // === Body ===
         var ASM_CONSTS = {};
@@ -882,13 +528,11 @@ var TreeSitter = function() {
         var LE_HEAP_LOAD_F64 = byteOffset => HEAP_DATA_VIEW.getFloat64(byteOffset, true);
         var LE_HEAP_LOAD_I16 = byteOffset => HEAP_DATA_VIEW.getInt16(byteOffset, true);
         var LE_HEAP_LOAD_I32 = byteOffset => HEAP_DATA_VIEW.getInt32(byteOffset, true);
-        var LE_HEAP_LOAD_U16 = byteOffset => HEAP_DATA_VIEW.getUint16(byteOffset, true);
         var LE_HEAP_LOAD_U32 = byteOffset => HEAP_DATA_VIEW.getUint32(byteOffset, true);
         var LE_HEAP_STORE_F32 = (byteOffset, value) => HEAP_DATA_VIEW.setFloat32(byteOffset, value, true);
         var LE_HEAP_STORE_F64 = (byteOffset, value) => HEAP_DATA_VIEW.setFloat64(byteOffset, value, true);
         var LE_HEAP_STORE_I16 = (byteOffset, value) => HEAP_DATA_VIEW.setInt16(byteOffset, value, true);
         var LE_HEAP_STORE_I32 = (byteOffset, value) => HEAP_DATA_VIEW.setInt32(byteOffset, value, true);
-        var LE_HEAP_STORE_U16 = (byteOffset, value) => HEAP_DATA_VIEW.setUint16(byteOffset, value, true);
         var LE_HEAP_STORE_U32 = (byteOffset, value) => HEAP_DATA_VIEW.setUint32(byteOffset, value, true);
         var callRuntimeCallbacks = callbacks => {
           while (callbacks.length > 0) {
@@ -939,7 +583,6 @@ var TreeSitter = function() {
             if ((u0 & 240) == 224) {
               u0 = ((u0 & 15) << 12) | (u1 << 6) | u2;
             } else {
-              if ((u0 & 248) != 240) warnOnce("Invalid UTF-8 leading byte " + ptrToString(u0) + " encountered when deserializing a UTF-8 string in wasm memory to a JS string!");
               u0 = ((u0 & 7) << 18) | (u1 << 12) | (u2 << 6) | (heapOrArray[idx++] & 63);
             }
             if (u0 < 65536) {
@@ -1060,52 +703,17 @@ var TreeSitter = function() {
                   }
                 }
               } else {
-                err(`unknown dylink.0 subsection: ${subsectionType}`);
                 // unknown subsection
                 offset += subsectionSize;
               }
             }
           }
-          var tableAlign = Math.pow(2, customSection.tableAlign);
-          assert(tableAlign === 1, `invalid tableAlign ${tableAlign}`);
-          assert(offset == end);
           return customSection;
         };
         /**
      * @param {number} ptr
      * @param {string} type
      */ function getValue(ptr, type = "i8") {
-          if (type.endsWith("*")) type = "*";
-          switch (type) {
-           case "i1":
-            return SAFE_HEAP_LOAD(ptr, 1, 0);
-
-           case "i8":
-            return SAFE_HEAP_LOAD(ptr, 1, 0);
-
-           case "i16":
-            return LE_HEAP_LOAD_I16(((ptr) >> 1) * 2);
-
-           case "i32":
-            return LE_HEAP_LOAD_I32(((ptr) >> 2) * 4);
-
-           case "i64":
-            abort("to do getValue(i64) use WASM_BIGINT");
-
-           case "float":
-            return LE_HEAP_LOAD_F32(((ptr) >> 2) * 4);
-
-           case "double":
-            return LE_HEAP_LOAD_F64(((ptr) >> 3) * 8);
-
-           case "*":
-            return LE_HEAP_LOAD_U32(((ptr) >> 2) * 4);
-
-           default:
-            abort(`invalid type for getValue: ${type}`);
-          }
-        }
-        function getValue_safe(ptr, type = "i8") {
           if (type.endsWith("*")) type = "*";
           switch (type) {
            case "i1":
@@ -1153,21 +761,15 @@ var TreeSitter = function() {
           loadedLibsByName: {},
           loadedLibsByHandle: {},
           init() {
-            // This function needs to run after the initial wasmImports object
-            // as been created.
-            assert(wasmImports);
             newDSO("__main__", 0, wasmImports);
           }
         };
-        var ___heap_base = 78144;
+        var ___heap_base = 78112;
         var zeroMemory = (address, size) => {
           HEAPU8.fill(0, address, address + size);
           return address;
         };
-        var alignMemory = (size, alignment) => {
-          assert(alignment, "alignment argument is required");
-          return Math.ceil(size / alignment) * alignment;
-        };
+        var alignMemory = (size, alignment) => Math.ceil(size / alignment) * alignment;
         var getMemory = size => {
           // After the runtime is initialized, we must only use sbrk() normally.
           if (runtimeInitialized) {
@@ -1179,14 +781,12 @@ var TreeSitter = function() {
           var ret = ___heap_base;
           // Keep __heap_base stack aligned.
           var end = ret + alignMemory(size, 16);
-          assert(end <= HEAP8.length, "failure to getMemory - memory growth etc. is not supported there, call malloc/sbrk directly or increase INITIAL_MEMORY");
           ___heap_base = end;
           GOT["__heap_base"].value = end;
           return ret;
         };
         var isInternalSym = symName => [ "__cpp_exception", "__c_longjmp", "__wasm_apply_data_relocs", "__dso_handle", "__tls_size", "__tls_align", "__set_stack_limits", "_emscripten_tls_init", "__wasm_init_tls", "__wasm_call_ctors", "__start_em_asm", "__stop_em_asm", "__start_em_js", "__stop_em_js" ].includes(symName) || symName.startsWith("__em_js__");
         var uleb128Encode = (n, target) => {
-          assert(n < 16384);
           if (n < 128) {
             target.push(n);
           } else {
@@ -1194,7 +794,6 @@ var TreeSitter = function() {
           }
         };
         var sigToWasmTypes = sig => {
-          assert(!sig.includes("j"), "i64 not permitted in function signatures when WASM_BIGINT is disabled");
           var typeNames = {
             "i": "i32",
             "j": "i64",
@@ -1208,7 +807,6 @@ var TreeSitter = function() {
             results: sig[0] == "v" ? [] : [ typeNames[sig[0]] ]
           };
           for (var i = 1; i < sig.length; ++i) {
-            assert(sig[i] in typeNames, "invalid signature char: " + sig[i]);
             type.parameters.push(typeNames[sig[i]]);
           }
           return type;
@@ -1233,7 +831,6 @@ var TreeSitter = function() {
           target.push(96);
           /* form: func */ uleb128Encode(sigParam.length, target);
           for (var i = 0; i < sigParam.length; ++i) {
-            assert(sigParam[i] in typeCodes, "invalid signature char: " + sigParam[i]);
             target.push(typeCodes[sigParam[i]]);
           }
           // Return values, length + signatures
@@ -1245,7 +842,6 @@ var TreeSitter = function() {
           }
         };
         var convertJsFunctionToWasm = (func, sig) => {
-          assert(!sig.includes("j"), "i64 not permitted in function signatures when WASM_BIGINT is disabled");
           // If the type reflection proposal is available, use the new
           // "WebAssembly.Function" constructor.
           // Otherwise, construct a minimal wasm module importing the JS function and
@@ -1293,7 +889,6 @@ var TreeSitter = function() {
             if (funcPtr >= wasmTableMirror.length) wasmTableMirror.length = funcPtr + 1;
             wasmTableMirror[funcPtr] = func = wasmTable.get(funcPtr);
           }
-          assert(wasmTable.get(funcPtr) == func, "JavaScript-side Wasm function table mirror is out of date!");
           return func;
         };
         var updateTableMap = (offset, count) => {
@@ -1341,7 +936,6 @@ var TreeSitter = function() {
           wasmTableMirror[idx] = wasmTable.get(idx);
         };
         /** @param {string=} sig */ var addFunction = (func, sig) => {
-          assert(typeof func != "undefined");
           // Check if the function is already in the table, to ensure each function
           // gets a unique index.
           var rtn = getFunctionAddress(func);
@@ -1358,7 +952,6 @@ var TreeSitter = function() {
             if (!(err instanceof TypeError)) {
               throw err;
             }
-            assert(typeof sig != "undefined", "Missing signature argument to addFunction: " + func);
             var wrapped = convertJsFunctionToWasm(func, sig);
             setWasmTableEntry(ret, wrapped);
           }
@@ -1418,13 +1011,6 @@ var TreeSitter = function() {
         };
         var dynCallLegacy = (sig, ptr, args) => {
           sig = sig.replace(/p/g, "i");
-          assert(("dynCall_" + sig) in Module, `bad function pointer type - dynCall function not found for sig '${sig}'`);
-          if (args?.length) {
-            // j (64-bit integer) must be passed in as two numbers [low 32, high 32].
-            assert(args.length === sig.substring(1).replace(/j/g, "--").length);
-          } else {
-            assert(sig.length == 1);
-          }
           var f = Module["dynCall_" + sig];
           return f(ptr, ...args);
         };
@@ -1435,7 +1021,6 @@ var TreeSitter = function() {
           if (sig.includes("j")) {
             return dynCallLegacy(sig, ptr, args);
           }
-          assert(getWasmTableEntry(ptr), `missing table entry in dynCall: ${ptr}`);
           var rtn = getWasmTableEntry(ptr)(...args);
           return rtn;
         };
@@ -1488,10 +1073,7 @@ var TreeSitter = function() {
      *   frequent uses of UTF8ToString() with and without maxBytesToRead may throw
      *   JS JIT optimizations off, so it is worth to consider consistently using one
      * @return {string}
-     */ var UTF8ToString = (ptr, maxBytesToRead) => {
-          assert(typeof ptr == "number", `UTF8ToString expects a number (got ${typeof ptr})`);
-          return ptr ? UTF8ArrayToString(HEAPU8, ptr, maxBytesToRead) : "";
-        };
+     */ var UTF8ToString = (ptr, maxBytesToRead) => ptr ? UTF8ArrayToString(HEAPU8, ptr, maxBytesToRead) : "";
         /**
       * @param {string=} libName
       * @param {Object=} localScope
@@ -1499,7 +1081,6 @@ var TreeSitter = function() {
       */ var loadWebAssemblyModule = (binary, flags, libName, localScope, handle) => {
           var metadata = getDylinkMetadata(binary);
           currentModuleWeakSymbols = metadata.weakImports;
-          var originalTable = wasmTable;
           // loadModule loads the wasm module after all its dependencies have been loaded.
           // can be called both sync/async.
           function loadModule() {
@@ -1510,7 +1091,7 @@ var TreeSitter = function() {
             // If `handle` is specified than it is assumed that the calling thread has
             // exclusive access to it for the duration of this function.  See the
             // locking in `dynlink.c`.
-            var firstLoad = !handle || !SAFE_HEAP_LOAD((handle) + (8), 1, 0);
+            var firstLoad = !handle || !HEAP8[(handle) + (8)];
             if (firstLoad) {
               // alignments are powers of 2
               var memAlign = Math.pow(2, metadata.memoryAlign);
@@ -1519,7 +1100,7 @@ var TreeSitter = function() {
               // TODO: add to cleanups
               var tableBase = metadata.tableSize ? wasmTable.length : 0;
               if (handle) {
-                SAFE_HEAP_STORE((handle) + (8), 1, 1);
+                HEAP8[(handle) + (8)] = 1;
                 LE_HEAP_STORE_U32((((handle) + (12)) >> 2) * 4, memoryBase);
                 LE_HEAP_STORE_I32((((handle) + (16)) >> 2) * 4, metadata.memorySize);
                 LE_HEAP_STORE_U32((((handle) + (20)) >> 2) * 4, tableBase);
@@ -1547,7 +1128,6 @@ var TreeSitter = function() {
               if (!resolved) {
                 resolved = moduleExports[sym];
               }
-              assert(resolved, `undefined symbol '${sym}'. perhaps a side module was not linked in? if this global was expected to arrive from a system library, try to build the MAIN_MODULE with EMCC_FORCE_STDLIBS=1 in the environment`);
               return resolved;
             }
             // TODO kill ↓↓↓ (except "symbols local to this module", it will likely be
@@ -1594,8 +1174,6 @@ var TreeSitter = function() {
               "wasi_snapshot_preview1": proxy
             };
             function postInstantiation(module, instance) {
-              // the table should be unchanged
-              assert(wasmTable === originalTable);
               // add new entries to functionsInTableMap
               updateTableMap(tableBase, metadata.tableSize);
               moduleExports = relocateExports(instance.exports, memoryBase);
@@ -1723,7 +1301,6 @@ var TreeSitter = function() {
         /** @param {boolean=} noRunDep */ var asyncLoad = (url, onload, onerror, noRunDep) => {
           var dep = !noRunDep ? getUniqueRunDependency(`al ${url}`) : "";
           readAsync(url).then(arrayBuffer => {
-            assert(arrayBuffer, `Loading data file "${url}" failed (no arrayBuffer).`);
             onload(new Uint8Array(arrayBuffer));
             if (dep) removeRunDependency(dep);
           }, err => {
@@ -1747,7 +1324,6 @@ var TreeSitter = function() {
           var dso = LDSO.loadedLibsByName[libName];
           if (dso) {
             // the library is being loaded or has been loaded already.
-            assert(dso.exports !== "loading", `Attempt to load '${libName}' twice before the first load completed`);
             if (!flags.global) {
               if (localScope) {
                 Object.assign(localScope, dso.exports);
@@ -1829,7 +1405,6 @@ var TreeSitter = function() {
                 // Ignore undefined symbols that are imported as weak.
                 continue;
               }
-              assert(value, `undefined symbol '${symName}'. perhaps a side module was not linked in? if this global was expected to arrive from a system library, try to build the MAIN_MODULE with EMCC_FORCE_STDLIBS=1 in the environment`);
               if (typeof value == "function") {
                 /** @suppress {checkTypes} */ entry.value = addFunction(value, value.sig);
               } else if (typeof value == "number") {
@@ -1859,12 +1434,6 @@ var TreeSitter = function() {
           });
         };
         var noExitRuntime = Module["noExitRuntime"] || true;
-        var ptrToString = ptr => {
-          assert(typeof ptr === "number");
-          // With CAN_ADDRESS_2GB or MEMORY64, pointers are already unsigned.
-          ptr >>>= 0;
-          return "0x" + ptr.toString(16).padStart(8, "0");
-        };
         /**
      * @param {number} ptr
      * @param {number} value
@@ -1873,44 +1442,6 @@ var TreeSitter = function() {
           if (type.endsWith("*")) type = "*";
           switch (type) {
            case "i1":
-            SAFE_HEAP_STORE(ptr, value, 1);
-            break;
-
-           case "i8":
-            SAFE_HEAP_STORE(ptr, value, 1);
-            break;
-
-           case "i16":
-            LE_HEAP_STORE_I16(((ptr) >> 1) * 2, value);
-            break;
-
-           case "i32":
-            LE_HEAP_STORE_I32(((ptr) >> 2) * 4, value);
-            break;
-
-           case "i64":
-            abort("to do setValue(i64) use WASM_BIGINT");
-
-           case "float":
-            LE_HEAP_STORE_F32(((ptr) >> 2) * 4, value);
-            break;
-
-           case "double":
-            LE_HEAP_STORE_F64(((ptr) >> 3) * 8, value);
-            break;
-
-           case "*":
-            LE_HEAP_STORE_U32(((ptr) >> 2) * 4, value);
-            break;
-
-           default:
-            abort(`invalid type for setValue: ${type}`);
-          }
-        }
-        function setValue_safe(ptr, value, type = "i8") {
-          if (type.endsWith("*")) type = "*";
-          switch (type) {
-           case "i1":
             HEAP8[ptr] = value;
             break;
 
@@ -1945,38 +1476,20 @@ var TreeSitter = function() {
             abort(`invalid type for setValue: ${type}`);
           }
         }
-        var unSign = (value, bits) => {
-          if (value >= 0) {
-            return value;
-          }
-          // Need some trickery, since if bits == 32, we are right at the limit of the
-          // bits JS uses in bitshifts
-          return bits <= 32 ? 2 * Math.abs(1 << (bits - 1)) + value : Math.pow(2, bits) + value;
-        };
-        var warnOnce = text => {
-          warnOnce.shown ||= {};
-          if (!warnOnce.shown[text]) {
-            warnOnce.shown[text] = 1;
-            if (ENVIRONMENT_IS_NODE) text = "warning: " + text;
-            err(text);
-          }
-        };
         var ___memory_base = new WebAssembly.Global({
           "value": "i32",
           "mutable": false
         }, 1024);
-        var ___stack_high = 78144;
-        var ___stack_low = 12608;
         var ___stack_pointer = new WebAssembly.Global({
           "value": "i32",
           "mutable": true
-        }, 78144);
+        }, 78112);
         var ___table_base = new WebAssembly.Global({
           "value": "i32",
           "mutable": false
         }, 1);
         var __abort_js = () => {
-          abort("native code called abort()");
+          abort("");
         };
         __abort_js.sig = "v";
         var nowIsMonotonic = 1;
@@ -2006,9 +1519,7 @@ var TreeSitter = function() {
             // .grow() takes a delta compared to the previous size
             updateMemoryViews();
             return 1;
-          } /*success*/ catch (e) {
-            err(`growMemory: Attempted to grow heap from ${b.byteLength} bytes to ${size} bytes, but got error: ${e}`);
-          }
+          } /*success*/ catch (e) {}
         };
         // implicit 0 return to save code size (caller will cast "undefined" into 0
         // anyhow)
@@ -2018,7 +1529,6 @@ var TreeSitter = function() {
           requestedSize >>>= 0;
           // With multithreaded builds, races can happen (another thread might increase the size
           // in between), so return a failure, and let the caller retry.
-          assert(requestedSize > oldSize);
           // Memory resize rules:
           // 1.  Always increase heap size to at least the requested size, rounded up
           //     to next page multiple.
@@ -2039,7 +1549,6 @@ var TreeSitter = function() {
           // (the wasm binary specifies it, so if we tried, we'd fail anyhow).
           var maxHeapSize = getHeapMax();
           if (requestedSize > maxHeapSize) {
-            err(`Cannot enlarge memory, requested ${requestedSize} bytes, but the limit is ${maxHeapSize} bytes!`);
             return false;
           }
           var alignUp = (x, multiple) => x + (multiple - x % multiple) % multiple;
@@ -2057,28 +1566,12 @@ var TreeSitter = function() {
               return true;
             }
           }
-          err(`Failed to grow the heap from ${oldSize} bytes to ${newSize} bytes, not enough memory!`);
           return false;
         };
         _emscripten_resize_heap.sig = "ip";
-        var SYSCALLS = {
-          varargs: undefined,
-          getStr(ptr) {
-            var ret = UTF8ToString(ptr);
-            return ret;
-          }
-        };
-        var _fd_close = fd => {
-          abort("fd_close called without SYSCALLS_REQUIRE_FILESYSTEM");
-        };
+        var _fd_close = fd => 52;
         _fd_close.sig = "ii";
-        var convertI32PairToI53Checked = (lo, hi) => {
-          assert(lo == (lo >>> 0) || lo == (lo | 0));
-          // lo should either be a i32 or a u32
-          assert(hi === (hi | 0));
-          // hi should be a i32
-          return ((hi + 2097152) >>> 0 < 4194305 - !!lo) ? (lo >>> 0) + hi * 4294967296 : NaN;
-        };
+        var convertI32PairToI53Checked = (lo, hi) => ((hi + 2097152) >>> 0 < 4194305 - !!lo) ? (lo >>> 0) + hi * 4294967296 : NaN;
         function _fd_seek(fd, offset_low, offset_high, whence, newOffset) {
           var offset = convertI32PairToI53Checked(offset_low, offset_high);
           return 70;
@@ -2087,19 +1580,12 @@ var TreeSitter = function() {
         var printCharBuffers = [ null, [], [] ];
         var printChar = (stream, curr) => {
           var buffer = printCharBuffers[stream];
-          assert(buffer);
           if (curr === 0 || curr === 10) {
             (stream === 1 ? out : err)(UTF8ArrayToString(buffer, 0));
             buffer.length = 0;
           } else {
             buffer.push(curr);
           }
-        };
-        var flush_NO_FILESYSTEM = () => {
-          // flush anything remaining in the buffers during shutdown
-          _fflush(0);
-          if (printCharBuffers[1].length) printChar(1, 10);
-          if (printCharBuffers[2].length) printChar(2, 10);
         };
         var _fd_write = (fd, iov, iovcnt, pnum) => {
           // hack to support printf in SYSCALLS_REQUIRE_FILESYSTEM=0
@@ -2109,7 +1595,7 @@ var TreeSitter = function() {
             var len = LE_HEAP_LOAD_U32((((iov) + (4)) >> 2) * 4);
             iov += 8;
             for (var j = 0; j < len; j++) {
-              printChar(fd, SAFE_HEAP_LOAD(ptr + j, 1, 1));
+              printChar(fd, HEAPU8[ptr + j]);
             }
             num += len;
           }
@@ -2149,12 +1635,6 @@ var TreeSitter = function() {
         _proc_exit.sig = "vi";
         /** @param {boolean|number=} implicit */ var exitJS = (status, implicit) => {
           EXITSTATUS = status;
-          checkUnflushedContent();
-          // if exit() was called explicitly, warn the user if the runtime isn't actually being shut down
-          if (keepRuntimeAlive() && !implicit) {
-            var msg = `program exited (with status: ${status}), but keepRuntimeAlive() is set (counter=${runtimeKeepaliveCounter}) due to an async operation, so halting execution but not exiting the runtime or preventing further async execution (you can use emscripten_force_exit, if you want to force a true shutdown)`;
-            err(msg);
-          }
           _proc_exit(status);
         };
         var handleException = e => {
@@ -2165,12 +1645,6 @@ var TreeSitter = function() {
           //    that wish to return to JS event loop.
           if (e instanceof ExitStatus || e == "unwind") {
             return EXITSTATUS;
-          }
-          checkStackCookie();
-          if (e instanceof WebAssembly.RuntimeError) {
-            if (_emscripten_stack_get_current() <= 0) {
-              err("Stack overflow detected.  You can try increasing -sSTACK_SIZE (currently set to 65536)");
-            }
           }
           quit_(1, e);
         };
@@ -2197,7 +1671,6 @@ var TreeSitter = function() {
           return len;
         };
         var stringToUTF8Array = (str, heap, outIdx, maxBytesToWrite) => {
-          assert(typeof str === "string", `stringToUTF8Array expects a string (got ${typeof str})`);
           // Parameter maxBytesToWrite is not optional. Negative values, 0, null,
           // undefined and false each don't write out any bytes.
           if (!(maxBytesToWrite > 0)) return 0;
@@ -2232,7 +1705,6 @@ var TreeSitter = function() {
               heap[outIdx++] = 128 | (u & 63);
             } else {
               if (outIdx + 3 >= endIdx) break;
-              if (u > 1114111) warnOnce("Invalid Unicode code point " + ptrToString(u) + " encountered when serializing a JS string to a UTF-8 string in wasm memory! (Valid unicode code points should be in range 0-0x10FFFF).");
               heap[outIdx++] = 240 | (u >> 18);
               heap[outIdx++] = 128 | ((u >> 12) & 63);
               heap[outIdx++] = 128 | ((u >> 6) & 63);
@@ -2243,10 +1715,7 @@ var TreeSitter = function() {
           heap[outIdx] = 0;
           return outIdx - startIdx;
         };
-        var stringToUTF8 = (str, outPtr, maxBytesToWrite) => {
-          assert(typeof maxBytesToWrite == "number", "stringToUTF8(str, outPtr, maxBytesToWrite) is missing the third parameter that specifies the length of the output buffer!");
-          return stringToUTF8Array(str, HEAPU8, outPtr, maxBytesToWrite);
-        };
+        var stringToUTF8 = (str, outPtr, maxBytesToWrite) => stringToUTF8Array(str, HEAPU8, outPtr, maxBytesToWrite);
         var stackAlloc = sz => __emscripten_stack_alloc(sz);
         var stringToUTF8OnStack = str => {
           var size = lengthBytesUTF8(str) + 1;
@@ -2255,8 +1724,6 @@ var TreeSitter = function() {
           return ret;
         };
         var stringToUTF16 = (str, outPtr, maxBytesToWrite) => {
-          assert(outPtr % 2 == 0, "Pointer passed to stringToUTF16 must be aligned to two bytes!");
-          assert(typeof maxBytesToWrite == "number", "stringToUTF16(str, outPtr, maxBytesToWrite) is missing the third parameter that specifies the length of the output buffer!");
           // Backwards compatibility: if max bytes is not specified, assume unsafe unbounded write is allowed.
           maxBytesToWrite ??= 2147483647;
           if (maxBytesToWrite < 2) return 0;
@@ -2278,194 +1745,175 @@ var TreeSitter = function() {
         var AsciiToString = ptr => {
           var str = "";
           while (1) {
-            var ch = SAFE_HEAP_LOAD(ptr++, 1, 1);
+            var ch = HEAPU8[ptr++];
             if (!ch) return str;
             str += String.fromCharCode(ch);
           }
         };
-        function checkIncomingModuleAPI() {
-          ignoredModuleProp("fetchSettings");
-        }
         var wasmImports = {
           /** @export */ __heap_base: ___heap_base,
           /** @export */ __indirect_function_table: wasmTable,
           /** @export */ __memory_base: ___memory_base,
-          /** @export */ __stack_high: ___stack_high,
-          /** @export */ __stack_low: ___stack_low,
           /** @export */ __stack_pointer: ___stack_pointer,
           /** @export */ __table_base: ___table_base,
           /** @export */ _abort_js: __abort_js,
           /** @export */ _emscripten_get_now_is_monotonic: __emscripten_get_now_is_monotonic,
           /** @export */ _emscripten_memcpy_js: __emscripten_memcpy_js,
-          /** @export */ alignfault: alignfault,
-          /** @export */ emscripten_date_now: _emscripten_date_now,
           /** @export */ emscripten_get_now: _emscripten_get_now,
           /** @export */ emscripten_resize_heap: _emscripten_resize_heap,
           /** @export */ fd_close: _fd_close,
           /** @export */ fd_seek: _fd_seek,
           /** @export */ fd_write: _fd_write,
           /** @export */ memory: wasmMemory,
-          /** @export */ segfault: segfault,
           /** @export */ tree_sitter_log_callback: _tree_sitter_log_callback,
           /** @export */ tree_sitter_parse_callback: _tree_sitter_parse_callback
         };
         var wasmExports = createWasm();
-        var ___wasm_call_ctors = createExportWrapper("__wasm_call_ctors", 0);
-        var ___wasm_apply_data_relocs = createExportWrapper("__wasm_apply_data_relocs", 0);
-        var _malloc = Module["_malloc"] = createExportWrapper("malloc", 1);
-        var _calloc = Module["_calloc"] = createExportWrapper("calloc", 2);
-        var _realloc = Module["_realloc"] = createExportWrapper("realloc", 2);
-        var _free = Module["_free"] = createExportWrapper("free", 1);
-        var _ts_language_symbol_count = Module["_ts_language_symbol_count"] = createExportWrapper("ts_language_symbol_count", 1);
-        var _ts_language_state_count = Module["_ts_language_state_count"] = createExportWrapper("ts_language_state_count", 1);
-        var _ts_language_version = Module["_ts_language_version"] = createExportWrapper("ts_language_version", 1);
-        var _ts_language_field_count = Module["_ts_language_field_count"] = createExportWrapper("ts_language_field_count", 1);
-        var _ts_language_next_state = Module["_ts_language_next_state"] = createExportWrapper("ts_language_next_state", 3);
-        var _ts_language_symbol_name = Module["_ts_language_symbol_name"] = createExportWrapper("ts_language_symbol_name", 2);
-        var _ts_language_symbol_for_name = Module["_ts_language_symbol_for_name"] = createExportWrapper("ts_language_symbol_for_name", 4);
-        var _strncmp = Module["_strncmp"] = createExportWrapper("strncmp", 3);
-        var _ts_language_symbol_type = Module["_ts_language_symbol_type"] = createExportWrapper("ts_language_symbol_type", 2);
-        var _ts_language_field_name_for_id = Module["_ts_language_field_name_for_id"] = createExportWrapper("ts_language_field_name_for_id", 2);
-        var _ts_lookahead_iterator_new = Module["_ts_lookahead_iterator_new"] = createExportWrapper("ts_lookahead_iterator_new", 2);
-        var _ts_lookahead_iterator_delete = Module["_ts_lookahead_iterator_delete"] = createExportWrapper("ts_lookahead_iterator_delete", 1);
-        var _ts_lookahead_iterator_reset_state = Module["_ts_lookahead_iterator_reset_state"] = createExportWrapper("ts_lookahead_iterator_reset_state", 2);
-        var _ts_lookahead_iterator_reset = Module["_ts_lookahead_iterator_reset"] = createExportWrapper("ts_lookahead_iterator_reset", 3);
-        var _ts_lookahead_iterator_next = Module["_ts_lookahead_iterator_next"] = createExportWrapper("ts_lookahead_iterator_next", 1);
-        var _ts_lookahead_iterator_current_symbol = Module["_ts_lookahead_iterator_current_symbol"] = createExportWrapper("ts_lookahead_iterator_current_symbol", 1);
-        var _memset = Module["_memset"] = createExportWrapper("memset", 3);
-        var _memcpy = Module["_memcpy"] = createExportWrapper("memcpy", 3);
-        var _ts_parser_delete = Module["_ts_parser_delete"] = createExportWrapper("ts_parser_delete", 1);
-        var _ts_parser_set_language = Module["_ts_parser_set_language"] = createExportWrapper("ts_parser_set_language", 2);
-        var _ts_parser_reset = Module["_ts_parser_reset"] = createExportWrapper("ts_parser_reset", 1);
-        var _ts_parser_timeout_micros = Module["_ts_parser_timeout_micros"] = createExportWrapper("ts_parser_timeout_micros", 1);
-        var _ts_parser_set_timeout_micros = Module["_ts_parser_set_timeout_micros"] = createExportWrapper("ts_parser_set_timeout_micros", 3);
-        var _ts_parser_set_included_ranges = Module["_ts_parser_set_included_ranges"] = createExportWrapper("ts_parser_set_included_ranges", 3);
-        var _ts_query_new = Module["_ts_query_new"] = createExportWrapper("ts_query_new", 5);
-        var _ts_query_delete = Module["_ts_query_delete"] = createExportWrapper("ts_query_delete", 1);
-        var _iswspace = Module["_iswspace"] = createExportWrapper("iswspace", 1);
-        var _ts_query_pattern_count = Module["_ts_query_pattern_count"] = createExportWrapper("ts_query_pattern_count", 1);
-        var _ts_query_capture_count = Module["_ts_query_capture_count"] = createExportWrapper("ts_query_capture_count", 1);
-        var _ts_query_string_count = Module["_ts_query_string_count"] = createExportWrapper("ts_query_string_count", 1);
-        var _ts_query_capture_name_for_id = Module["_ts_query_capture_name_for_id"] = createExportWrapper("ts_query_capture_name_for_id", 3);
-        var _ts_query_string_value_for_id = Module["_ts_query_string_value_for_id"] = createExportWrapper("ts_query_string_value_for_id", 3);
-        var _ts_query_predicates_for_pattern = Module["_ts_query_predicates_for_pattern"] = createExportWrapper("ts_query_predicates_for_pattern", 3);
-        var _ts_query_disable_capture = Module["_ts_query_disable_capture"] = createExportWrapper("ts_query_disable_capture", 3);
-        var _memmove = Module["_memmove"] = createExportWrapper("memmove", 3);
-        var _memcmp = Module["_memcmp"] = createExportWrapper("memcmp", 3);
-        var _ts_tree_copy = Module["_ts_tree_copy"] = createExportWrapper("ts_tree_copy", 1);
-        var _ts_tree_delete = Module["_ts_tree_delete"] = createExportWrapper("ts_tree_delete", 1);
-        var _iswalnum = Module["_iswalnum"] = createExportWrapper("iswalnum", 1);
-        var _ts_init = Module["_ts_init"] = createExportWrapper("ts_init", 0);
-        var _ts_parser_new_wasm = Module["_ts_parser_new_wasm"] = createExportWrapper("ts_parser_new_wasm", 0);
-        var _ts_parser_enable_logger_wasm = Module["_ts_parser_enable_logger_wasm"] = createExportWrapper("ts_parser_enable_logger_wasm", 2);
-        var _ts_parser_parse_wasm = Module["_ts_parser_parse_wasm"] = createExportWrapper("ts_parser_parse_wasm", 5);
-        var _ts_parser_included_ranges_wasm = Module["_ts_parser_included_ranges_wasm"] = createExportWrapper("ts_parser_included_ranges_wasm", 1);
-        var _ts_language_type_is_named_wasm = Module["_ts_language_type_is_named_wasm"] = createExportWrapper("ts_language_type_is_named_wasm", 2);
-        var _ts_language_type_is_visible_wasm = Module["_ts_language_type_is_visible_wasm"] = createExportWrapper("ts_language_type_is_visible_wasm", 2);
-        var _ts_tree_root_node_wasm = Module["_ts_tree_root_node_wasm"] = createExportWrapper("ts_tree_root_node_wasm", 1);
-        var _ts_tree_root_node_with_offset_wasm = Module["_ts_tree_root_node_with_offset_wasm"] = createExportWrapper("ts_tree_root_node_with_offset_wasm", 1);
-        var _ts_tree_edit_wasm = Module["_ts_tree_edit_wasm"] = createExportWrapper("ts_tree_edit_wasm", 1);
-        var _ts_tree_included_ranges_wasm = Module["_ts_tree_included_ranges_wasm"] = createExportWrapper("ts_tree_included_ranges_wasm", 1);
-        var _ts_tree_get_changed_ranges_wasm = Module["_ts_tree_get_changed_ranges_wasm"] = createExportWrapper("ts_tree_get_changed_ranges_wasm", 2);
-        var _ts_tree_cursor_new_wasm = Module["_ts_tree_cursor_new_wasm"] = createExportWrapper("ts_tree_cursor_new_wasm", 1);
-        var _ts_tree_cursor_delete_wasm = Module["_ts_tree_cursor_delete_wasm"] = createExportWrapper("ts_tree_cursor_delete_wasm", 1);
-        var _ts_tree_cursor_reset_wasm = Module["_ts_tree_cursor_reset_wasm"] = createExportWrapper("ts_tree_cursor_reset_wasm", 1);
-        var _ts_tree_cursor_reset_to_wasm = Module["_ts_tree_cursor_reset_to_wasm"] = createExportWrapper("ts_tree_cursor_reset_to_wasm", 2);
-        var _ts_tree_cursor_goto_first_child_wasm = Module["_ts_tree_cursor_goto_first_child_wasm"] = createExportWrapper("ts_tree_cursor_goto_first_child_wasm", 1);
-        var _ts_tree_cursor_goto_last_child_wasm = Module["_ts_tree_cursor_goto_last_child_wasm"] = createExportWrapper("ts_tree_cursor_goto_last_child_wasm", 1);
-        var _ts_tree_cursor_goto_first_child_for_index_wasm = Module["_ts_tree_cursor_goto_first_child_for_index_wasm"] = createExportWrapper("ts_tree_cursor_goto_first_child_for_index_wasm", 1);
-        var _ts_tree_cursor_goto_first_child_for_position_wasm = Module["_ts_tree_cursor_goto_first_child_for_position_wasm"] = createExportWrapper("ts_tree_cursor_goto_first_child_for_position_wasm", 1);
-        var _ts_tree_cursor_goto_next_sibling_wasm = Module["_ts_tree_cursor_goto_next_sibling_wasm"] = createExportWrapper("ts_tree_cursor_goto_next_sibling_wasm", 1);
-        var _ts_tree_cursor_goto_previous_sibling_wasm = Module["_ts_tree_cursor_goto_previous_sibling_wasm"] = createExportWrapper("ts_tree_cursor_goto_previous_sibling_wasm", 1);
-        var _ts_tree_cursor_goto_descendant_wasm = Module["_ts_tree_cursor_goto_descendant_wasm"] = createExportWrapper("ts_tree_cursor_goto_descendant_wasm", 2);
-        var _ts_tree_cursor_goto_parent_wasm = Module["_ts_tree_cursor_goto_parent_wasm"] = createExportWrapper("ts_tree_cursor_goto_parent_wasm", 1);
-        var _ts_tree_cursor_current_node_type_id_wasm = Module["_ts_tree_cursor_current_node_type_id_wasm"] = createExportWrapper("ts_tree_cursor_current_node_type_id_wasm", 1);
-        var _ts_tree_cursor_current_node_state_id_wasm = Module["_ts_tree_cursor_current_node_state_id_wasm"] = createExportWrapper("ts_tree_cursor_current_node_state_id_wasm", 1);
-        var _ts_tree_cursor_current_node_is_named_wasm = Module["_ts_tree_cursor_current_node_is_named_wasm"] = createExportWrapper("ts_tree_cursor_current_node_is_named_wasm", 1);
-        var _ts_tree_cursor_current_node_is_missing_wasm = Module["_ts_tree_cursor_current_node_is_missing_wasm"] = createExportWrapper("ts_tree_cursor_current_node_is_missing_wasm", 1);
-        var _ts_tree_cursor_current_node_id_wasm = Module["_ts_tree_cursor_current_node_id_wasm"] = createExportWrapper("ts_tree_cursor_current_node_id_wasm", 1);
-        var _ts_tree_cursor_start_position_wasm = Module["_ts_tree_cursor_start_position_wasm"] = createExportWrapper("ts_tree_cursor_start_position_wasm", 1);
-        var _ts_tree_cursor_end_position_wasm = Module["_ts_tree_cursor_end_position_wasm"] = createExportWrapper("ts_tree_cursor_end_position_wasm", 1);
-        var _ts_tree_cursor_start_index_wasm = Module["_ts_tree_cursor_start_index_wasm"] = createExportWrapper("ts_tree_cursor_start_index_wasm", 1);
-        var _ts_tree_cursor_end_index_wasm = Module["_ts_tree_cursor_end_index_wasm"] = createExportWrapper("ts_tree_cursor_end_index_wasm", 1);
-        var _ts_tree_cursor_current_field_id_wasm = Module["_ts_tree_cursor_current_field_id_wasm"] = createExportWrapper("ts_tree_cursor_current_field_id_wasm", 1);
-        var _ts_tree_cursor_current_depth_wasm = Module["_ts_tree_cursor_current_depth_wasm"] = createExportWrapper("ts_tree_cursor_current_depth_wasm", 1);
-        var _ts_tree_cursor_current_descendant_index_wasm = Module["_ts_tree_cursor_current_descendant_index_wasm"] = createExportWrapper("ts_tree_cursor_current_descendant_index_wasm", 1);
-        var _ts_tree_cursor_current_node_wasm = Module["_ts_tree_cursor_current_node_wasm"] = createExportWrapper("ts_tree_cursor_current_node_wasm", 1);
-        var _ts_node_symbol_wasm = Module["_ts_node_symbol_wasm"] = createExportWrapper("ts_node_symbol_wasm", 1);
-        var _ts_node_field_name_for_child_wasm = Module["_ts_node_field_name_for_child_wasm"] = createExportWrapper("ts_node_field_name_for_child_wasm", 2);
-        var _ts_node_children_by_field_id_wasm = Module["_ts_node_children_by_field_id_wasm"] = createExportWrapper("ts_node_children_by_field_id_wasm", 2);
-        var _ts_node_first_child_for_byte_wasm = Module["_ts_node_first_child_for_byte_wasm"] = createExportWrapper("ts_node_first_child_for_byte_wasm", 1);
-        var _ts_node_first_named_child_for_byte_wasm = Module["_ts_node_first_named_child_for_byte_wasm"] = createExportWrapper("ts_node_first_named_child_for_byte_wasm", 1);
-        var _ts_node_grammar_symbol_wasm = Module["_ts_node_grammar_symbol_wasm"] = createExportWrapper("ts_node_grammar_symbol_wasm", 1);
-        var _ts_node_child_count_wasm = Module["_ts_node_child_count_wasm"] = createExportWrapper("ts_node_child_count_wasm", 1);
-        var _ts_node_named_child_count_wasm = Module["_ts_node_named_child_count_wasm"] = createExportWrapper("ts_node_named_child_count_wasm", 1);
-        var _ts_node_child_wasm = Module["_ts_node_child_wasm"] = createExportWrapper("ts_node_child_wasm", 2);
-        var _ts_node_named_child_wasm = Module["_ts_node_named_child_wasm"] = createExportWrapper("ts_node_named_child_wasm", 2);
-        var _ts_node_child_by_field_id_wasm = Module["_ts_node_child_by_field_id_wasm"] = createExportWrapper("ts_node_child_by_field_id_wasm", 2);
-        var _ts_node_next_sibling_wasm = Module["_ts_node_next_sibling_wasm"] = createExportWrapper("ts_node_next_sibling_wasm", 1);
-        var _ts_node_prev_sibling_wasm = Module["_ts_node_prev_sibling_wasm"] = createExportWrapper("ts_node_prev_sibling_wasm", 1);
-        var _ts_node_next_named_sibling_wasm = Module["_ts_node_next_named_sibling_wasm"] = createExportWrapper("ts_node_next_named_sibling_wasm", 1);
-        var _ts_node_prev_named_sibling_wasm = Module["_ts_node_prev_named_sibling_wasm"] = createExportWrapper("ts_node_prev_named_sibling_wasm", 1);
-        var _ts_node_descendant_count_wasm = Module["_ts_node_descendant_count_wasm"] = createExportWrapper("ts_node_descendant_count_wasm", 1);
-        var _ts_node_parent_wasm = Module["_ts_node_parent_wasm"] = createExportWrapper("ts_node_parent_wasm", 1);
-        var _ts_node_descendant_for_index_wasm = Module["_ts_node_descendant_for_index_wasm"] = createExportWrapper("ts_node_descendant_for_index_wasm", 1);
-        var _ts_node_named_descendant_for_index_wasm = Module["_ts_node_named_descendant_for_index_wasm"] = createExportWrapper("ts_node_named_descendant_for_index_wasm", 1);
-        var _ts_node_descendant_for_position_wasm = Module["_ts_node_descendant_for_position_wasm"] = createExportWrapper("ts_node_descendant_for_position_wasm", 1);
-        var _ts_node_named_descendant_for_position_wasm = Module["_ts_node_named_descendant_for_position_wasm"] = createExportWrapper("ts_node_named_descendant_for_position_wasm", 1);
-        var _ts_node_start_point_wasm = Module["_ts_node_start_point_wasm"] = createExportWrapper("ts_node_start_point_wasm", 1);
-        var _ts_node_end_point_wasm = Module["_ts_node_end_point_wasm"] = createExportWrapper("ts_node_end_point_wasm", 1);
-        var _ts_node_start_index_wasm = Module["_ts_node_start_index_wasm"] = createExportWrapper("ts_node_start_index_wasm", 1);
-        var _ts_node_end_index_wasm = Module["_ts_node_end_index_wasm"] = createExportWrapper("ts_node_end_index_wasm", 1);
-        var _ts_node_to_string_wasm = Module["_ts_node_to_string_wasm"] = createExportWrapper("ts_node_to_string_wasm", 1);
-        var _ts_node_children_wasm = Module["_ts_node_children_wasm"] = createExportWrapper("ts_node_children_wasm", 1);
-        var _ts_node_named_children_wasm = Module["_ts_node_named_children_wasm"] = createExportWrapper("ts_node_named_children_wasm", 1);
-        var _ts_node_descendants_of_type_wasm = Module["_ts_node_descendants_of_type_wasm"] = createExportWrapper("ts_node_descendants_of_type_wasm", 7);
-        var _ts_node_is_named_wasm = Module["_ts_node_is_named_wasm"] = createExportWrapper("ts_node_is_named_wasm", 1);
-        var _ts_node_has_changes_wasm = Module["_ts_node_has_changes_wasm"] = createExportWrapper("ts_node_has_changes_wasm", 1);
-        var _ts_node_has_error_wasm = Module["_ts_node_has_error_wasm"] = createExportWrapper("ts_node_has_error_wasm", 1);
-        var _ts_node_is_error_wasm = Module["_ts_node_is_error_wasm"] = createExportWrapper("ts_node_is_error_wasm", 1);
-        var _ts_node_is_missing_wasm = Module["_ts_node_is_missing_wasm"] = createExportWrapper("ts_node_is_missing_wasm", 1);
-        var _ts_node_is_extra_wasm = Module["_ts_node_is_extra_wasm"] = createExportWrapper("ts_node_is_extra_wasm", 1);
-        var _ts_node_parse_state_wasm = Module["_ts_node_parse_state_wasm"] = createExportWrapper("ts_node_parse_state_wasm", 1);
-        var _ts_node_next_parse_state_wasm = Module["_ts_node_next_parse_state_wasm"] = createExportWrapper("ts_node_next_parse_state_wasm", 1);
-        var _ts_query_matches_wasm = Module["_ts_query_matches_wasm"] = createExportWrapper("ts_query_matches_wasm", 10);
-        var _ts_query_captures_wasm = Module["_ts_query_captures_wasm"] = createExportWrapper("ts_query_captures_wasm", 10);
-        var _fflush = createExportWrapper("fflush", 1);
-        var _strlen = Module["_strlen"] = createExportWrapper("strlen", 1);
-        var _iswalpha = Module["_iswalpha"] = createExportWrapper("iswalpha", 1);
-        var _iswblank = Module["_iswblank"] = createExportWrapper("iswblank", 1);
-        var _iswdigit = Module["_iswdigit"] = createExportWrapper("iswdigit", 1);
-        var _iswlower = Module["_iswlower"] = createExportWrapper("iswlower", 1);
-        var _iswupper = Module["_iswupper"] = createExportWrapper("iswupper", 1);
-        var _iswxdigit = Module["_iswxdigit"] = createExportWrapper("iswxdigit", 1);
-        var _memchr = Module["_memchr"] = createExportWrapper("memchr", 3);
-        var _emscripten_get_sbrk_ptr = createExportWrapper("emscripten_get_sbrk_ptr", 0);
-        var _sbrk = createExportWrapper("sbrk", 1);
-        var _strcmp = Module["_strcmp"] = createExportWrapper("strcmp", 2);
-        var _strncat = Module["_strncat"] = createExportWrapper("strncat", 3);
-        var _strncpy = Module["_strncpy"] = createExportWrapper("strncpy", 3);
-        var _towlower = Module["_towlower"] = createExportWrapper("towlower", 1);
-        var _towupper = Module["_towupper"] = createExportWrapper("towupper", 1);
-        var _setThrew = createExportWrapper("setThrew", 2);
-        var _emscripten_stack_set_limits = (a0, a1) => (_emscripten_stack_set_limits = wasmExports["emscripten_stack_set_limits"])(a0, a1);
-        var _emscripten_stack_get_free = () => (_emscripten_stack_get_free = wasmExports["emscripten_stack_get_free"])();
-        var _emscripten_stack_get_base = () => (_emscripten_stack_get_base = wasmExports["emscripten_stack_get_base"])();
-        var _emscripten_stack_get_end = () => (_emscripten_stack_get_end = wasmExports["emscripten_stack_get_end"])();
+        var ___wasm_call_ctors = () => (___wasm_call_ctors = wasmExports["__wasm_call_ctors"])();
+        var ___wasm_apply_data_relocs = () => (___wasm_apply_data_relocs = wasmExports["__wasm_apply_data_relocs"])();
+        var _malloc = Module["_malloc"] = a0 => (_malloc = Module["_malloc"] = wasmExports["malloc"])(a0);
+        var _calloc = Module["_calloc"] = (a0, a1) => (_calloc = Module["_calloc"] = wasmExports["calloc"])(a0, a1);
+        var _realloc = Module["_realloc"] = (a0, a1) => (_realloc = Module["_realloc"] = wasmExports["realloc"])(a0, a1);
+        var _free = Module["_free"] = a0 => (_free = Module["_free"] = wasmExports["free"])(a0);
+        var _ts_language_symbol_count = Module["_ts_language_symbol_count"] = a0 => (_ts_language_symbol_count = Module["_ts_language_symbol_count"] = wasmExports["ts_language_symbol_count"])(a0);
+        var _ts_language_state_count = Module["_ts_language_state_count"] = a0 => (_ts_language_state_count = Module["_ts_language_state_count"] = wasmExports["ts_language_state_count"])(a0);
+        var _ts_language_version = Module["_ts_language_version"] = a0 => (_ts_language_version = Module["_ts_language_version"] = wasmExports["ts_language_version"])(a0);
+        var _ts_language_field_count = Module["_ts_language_field_count"] = a0 => (_ts_language_field_count = Module["_ts_language_field_count"] = wasmExports["ts_language_field_count"])(a0);
+        var _ts_language_next_state = Module["_ts_language_next_state"] = (a0, a1, a2) => (_ts_language_next_state = Module["_ts_language_next_state"] = wasmExports["ts_language_next_state"])(a0, a1, a2);
+        var _ts_language_symbol_name = Module["_ts_language_symbol_name"] = (a0, a1) => (_ts_language_symbol_name = Module["_ts_language_symbol_name"] = wasmExports["ts_language_symbol_name"])(a0, a1);
+        var _ts_language_symbol_for_name = Module["_ts_language_symbol_for_name"] = (a0, a1, a2, a3) => (_ts_language_symbol_for_name = Module["_ts_language_symbol_for_name"] = wasmExports["ts_language_symbol_for_name"])(a0, a1, a2, a3);
+        var _strncmp = Module["_strncmp"] = (a0, a1, a2) => (_strncmp = Module["_strncmp"] = wasmExports["strncmp"])(a0, a1, a2);
+        var _ts_language_symbol_type = Module["_ts_language_symbol_type"] = (a0, a1) => (_ts_language_symbol_type = Module["_ts_language_symbol_type"] = wasmExports["ts_language_symbol_type"])(a0, a1);
+        var _ts_language_field_name_for_id = Module["_ts_language_field_name_for_id"] = (a0, a1) => (_ts_language_field_name_for_id = Module["_ts_language_field_name_for_id"] = wasmExports["ts_language_field_name_for_id"])(a0, a1);
+        var _ts_lookahead_iterator_new = Module["_ts_lookahead_iterator_new"] = (a0, a1) => (_ts_lookahead_iterator_new = Module["_ts_lookahead_iterator_new"] = wasmExports["ts_lookahead_iterator_new"])(a0, a1);
+        var _ts_lookahead_iterator_delete = Module["_ts_lookahead_iterator_delete"] = a0 => (_ts_lookahead_iterator_delete = Module["_ts_lookahead_iterator_delete"] = wasmExports["ts_lookahead_iterator_delete"])(a0);
+        var _ts_lookahead_iterator_reset_state = Module["_ts_lookahead_iterator_reset_state"] = (a0, a1) => (_ts_lookahead_iterator_reset_state = Module["_ts_lookahead_iterator_reset_state"] = wasmExports["ts_lookahead_iterator_reset_state"])(a0, a1);
+        var _ts_lookahead_iterator_reset = Module["_ts_lookahead_iterator_reset"] = (a0, a1, a2) => (_ts_lookahead_iterator_reset = Module["_ts_lookahead_iterator_reset"] = wasmExports["ts_lookahead_iterator_reset"])(a0, a1, a2);
+        var _ts_lookahead_iterator_next = Module["_ts_lookahead_iterator_next"] = a0 => (_ts_lookahead_iterator_next = Module["_ts_lookahead_iterator_next"] = wasmExports["ts_lookahead_iterator_next"])(a0);
+        var _ts_lookahead_iterator_current_symbol = Module["_ts_lookahead_iterator_current_symbol"] = a0 => (_ts_lookahead_iterator_current_symbol = Module["_ts_lookahead_iterator_current_symbol"] = wasmExports["ts_lookahead_iterator_current_symbol"])(a0);
+        var _memset = Module["_memset"] = (a0, a1, a2) => (_memset = Module["_memset"] = wasmExports["memset"])(a0, a1, a2);
+        var _memcpy = Module["_memcpy"] = (a0, a1, a2) => (_memcpy = Module["_memcpy"] = wasmExports["memcpy"])(a0, a1, a2);
+        var _ts_parser_delete = Module["_ts_parser_delete"] = a0 => (_ts_parser_delete = Module["_ts_parser_delete"] = wasmExports["ts_parser_delete"])(a0);
+        var _ts_parser_reset = Module["_ts_parser_reset"] = a0 => (_ts_parser_reset = Module["_ts_parser_reset"] = wasmExports["ts_parser_reset"])(a0);
+        var _ts_parser_set_language = Module["_ts_parser_set_language"] = (a0, a1) => (_ts_parser_set_language = Module["_ts_parser_set_language"] = wasmExports["ts_parser_set_language"])(a0, a1);
+        var _ts_parser_timeout_micros = Module["_ts_parser_timeout_micros"] = a0 => (_ts_parser_timeout_micros = Module["_ts_parser_timeout_micros"] = wasmExports["ts_parser_timeout_micros"])(a0);
+        var _ts_parser_set_timeout_micros = Module["_ts_parser_set_timeout_micros"] = (a0, a1, a2) => (_ts_parser_set_timeout_micros = Module["_ts_parser_set_timeout_micros"] = wasmExports["ts_parser_set_timeout_micros"])(a0, a1, a2);
+        var _ts_parser_set_included_ranges = Module["_ts_parser_set_included_ranges"] = (a0, a1, a2) => (_ts_parser_set_included_ranges = Module["_ts_parser_set_included_ranges"] = wasmExports["ts_parser_set_included_ranges"])(a0, a1, a2);
+        var _memmove = Module["_memmove"] = (a0, a1, a2) => (_memmove = Module["_memmove"] = wasmExports["memmove"])(a0, a1, a2);
+        var _memcmp = Module["_memcmp"] = (a0, a1, a2) => (_memcmp = Module["_memcmp"] = wasmExports["memcmp"])(a0, a1, a2);
+        var _ts_query_new = Module["_ts_query_new"] = (a0, a1, a2, a3, a4) => (_ts_query_new = Module["_ts_query_new"] = wasmExports["ts_query_new"])(a0, a1, a2, a3, a4);
+        var _ts_query_delete = Module["_ts_query_delete"] = a0 => (_ts_query_delete = Module["_ts_query_delete"] = wasmExports["ts_query_delete"])(a0);
+        var _iswspace = Module["_iswspace"] = a0 => (_iswspace = Module["_iswspace"] = wasmExports["iswspace"])(a0);
+        var _iswalnum = Module["_iswalnum"] = a0 => (_iswalnum = Module["_iswalnum"] = wasmExports["iswalnum"])(a0);
+        var _ts_query_pattern_count = Module["_ts_query_pattern_count"] = a0 => (_ts_query_pattern_count = Module["_ts_query_pattern_count"] = wasmExports["ts_query_pattern_count"])(a0);
+        var _ts_query_capture_count = Module["_ts_query_capture_count"] = a0 => (_ts_query_capture_count = Module["_ts_query_capture_count"] = wasmExports["ts_query_capture_count"])(a0);
+        var _ts_query_string_count = Module["_ts_query_string_count"] = a0 => (_ts_query_string_count = Module["_ts_query_string_count"] = wasmExports["ts_query_string_count"])(a0);
+        var _ts_query_capture_name_for_id = Module["_ts_query_capture_name_for_id"] = (a0, a1, a2) => (_ts_query_capture_name_for_id = Module["_ts_query_capture_name_for_id"] = wasmExports["ts_query_capture_name_for_id"])(a0, a1, a2);
+        var _ts_query_string_value_for_id = Module["_ts_query_string_value_for_id"] = (a0, a1, a2) => (_ts_query_string_value_for_id = Module["_ts_query_string_value_for_id"] = wasmExports["ts_query_string_value_for_id"])(a0, a1, a2);
+        var _ts_query_predicates_for_pattern = Module["_ts_query_predicates_for_pattern"] = (a0, a1, a2) => (_ts_query_predicates_for_pattern = Module["_ts_query_predicates_for_pattern"] = wasmExports["ts_query_predicates_for_pattern"])(a0, a1, a2);
+        var _ts_query_disable_capture = Module["_ts_query_disable_capture"] = (a0, a1, a2) => (_ts_query_disable_capture = Module["_ts_query_disable_capture"] = wasmExports["ts_query_disable_capture"])(a0, a1, a2);
+        var _ts_tree_copy = Module["_ts_tree_copy"] = a0 => (_ts_tree_copy = Module["_ts_tree_copy"] = wasmExports["ts_tree_copy"])(a0);
+        var _ts_tree_delete = Module["_ts_tree_delete"] = a0 => (_ts_tree_delete = Module["_ts_tree_delete"] = wasmExports["ts_tree_delete"])(a0);
+        var _ts_init = Module["_ts_init"] = () => (_ts_init = Module["_ts_init"] = wasmExports["ts_init"])();
+        var _ts_parser_new_wasm = Module["_ts_parser_new_wasm"] = () => (_ts_parser_new_wasm = Module["_ts_parser_new_wasm"] = wasmExports["ts_parser_new_wasm"])();
+        var _ts_parser_enable_logger_wasm = Module["_ts_parser_enable_logger_wasm"] = (a0, a1) => (_ts_parser_enable_logger_wasm = Module["_ts_parser_enable_logger_wasm"] = wasmExports["ts_parser_enable_logger_wasm"])(a0, a1);
+        var _ts_parser_parse_wasm = Module["_ts_parser_parse_wasm"] = (a0, a1, a2, a3, a4) => (_ts_parser_parse_wasm = Module["_ts_parser_parse_wasm"] = wasmExports["ts_parser_parse_wasm"])(a0, a1, a2, a3, a4);
+        var _ts_parser_included_ranges_wasm = Module["_ts_parser_included_ranges_wasm"] = a0 => (_ts_parser_included_ranges_wasm = Module["_ts_parser_included_ranges_wasm"] = wasmExports["ts_parser_included_ranges_wasm"])(a0);
+        var _ts_language_type_is_named_wasm = Module["_ts_language_type_is_named_wasm"] = (a0, a1) => (_ts_language_type_is_named_wasm = Module["_ts_language_type_is_named_wasm"] = wasmExports["ts_language_type_is_named_wasm"])(a0, a1);
+        var _ts_language_type_is_visible_wasm = Module["_ts_language_type_is_visible_wasm"] = (a0, a1) => (_ts_language_type_is_visible_wasm = Module["_ts_language_type_is_visible_wasm"] = wasmExports["ts_language_type_is_visible_wasm"])(a0, a1);
+        var _ts_tree_root_node_wasm = Module["_ts_tree_root_node_wasm"] = a0 => (_ts_tree_root_node_wasm = Module["_ts_tree_root_node_wasm"] = wasmExports["ts_tree_root_node_wasm"])(a0);
+        var _ts_tree_root_node_with_offset_wasm = Module["_ts_tree_root_node_with_offset_wasm"] = a0 => (_ts_tree_root_node_with_offset_wasm = Module["_ts_tree_root_node_with_offset_wasm"] = wasmExports["ts_tree_root_node_with_offset_wasm"])(a0);
+        var _ts_tree_edit_wasm = Module["_ts_tree_edit_wasm"] = a0 => (_ts_tree_edit_wasm = Module["_ts_tree_edit_wasm"] = wasmExports["ts_tree_edit_wasm"])(a0);
+        var _ts_tree_included_ranges_wasm = Module["_ts_tree_included_ranges_wasm"] = a0 => (_ts_tree_included_ranges_wasm = Module["_ts_tree_included_ranges_wasm"] = wasmExports["ts_tree_included_ranges_wasm"])(a0);
+        var _ts_tree_get_changed_ranges_wasm = Module["_ts_tree_get_changed_ranges_wasm"] = (a0, a1) => (_ts_tree_get_changed_ranges_wasm = Module["_ts_tree_get_changed_ranges_wasm"] = wasmExports["ts_tree_get_changed_ranges_wasm"])(a0, a1);
+        var _ts_tree_cursor_new_wasm = Module["_ts_tree_cursor_new_wasm"] = a0 => (_ts_tree_cursor_new_wasm = Module["_ts_tree_cursor_new_wasm"] = wasmExports["ts_tree_cursor_new_wasm"])(a0);
+        var _ts_tree_cursor_delete_wasm = Module["_ts_tree_cursor_delete_wasm"] = a0 => (_ts_tree_cursor_delete_wasm = Module["_ts_tree_cursor_delete_wasm"] = wasmExports["ts_tree_cursor_delete_wasm"])(a0);
+        var _ts_tree_cursor_reset_wasm = Module["_ts_tree_cursor_reset_wasm"] = a0 => (_ts_tree_cursor_reset_wasm = Module["_ts_tree_cursor_reset_wasm"] = wasmExports["ts_tree_cursor_reset_wasm"])(a0);
+        var _ts_tree_cursor_reset_to_wasm = Module["_ts_tree_cursor_reset_to_wasm"] = (a0, a1) => (_ts_tree_cursor_reset_to_wasm = Module["_ts_tree_cursor_reset_to_wasm"] = wasmExports["ts_tree_cursor_reset_to_wasm"])(a0, a1);
+        var _ts_tree_cursor_goto_first_child_wasm = Module["_ts_tree_cursor_goto_first_child_wasm"] = a0 => (_ts_tree_cursor_goto_first_child_wasm = Module["_ts_tree_cursor_goto_first_child_wasm"] = wasmExports["ts_tree_cursor_goto_first_child_wasm"])(a0);
+        var _ts_tree_cursor_goto_last_child_wasm = Module["_ts_tree_cursor_goto_last_child_wasm"] = a0 => (_ts_tree_cursor_goto_last_child_wasm = Module["_ts_tree_cursor_goto_last_child_wasm"] = wasmExports["ts_tree_cursor_goto_last_child_wasm"])(a0);
+        var _ts_tree_cursor_goto_first_child_for_index_wasm = Module["_ts_tree_cursor_goto_first_child_for_index_wasm"] = a0 => (_ts_tree_cursor_goto_first_child_for_index_wasm = Module["_ts_tree_cursor_goto_first_child_for_index_wasm"] = wasmExports["ts_tree_cursor_goto_first_child_for_index_wasm"])(a0);
+        var _ts_tree_cursor_goto_first_child_for_position_wasm = Module["_ts_tree_cursor_goto_first_child_for_position_wasm"] = a0 => (_ts_tree_cursor_goto_first_child_for_position_wasm = Module["_ts_tree_cursor_goto_first_child_for_position_wasm"] = wasmExports["ts_tree_cursor_goto_first_child_for_position_wasm"])(a0);
+        var _ts_tree_cursor_goto_next_sibling_wasm = Module["_ts_tree_cursor_goto_next_sibling_wasm"] = a0 => (_ts_tree_cursor_goto_next_sibling_wasm = Module["_ts_tree_cursor_goto_next_sibling_wasm"] = wasmExports["ts_tree_cursor_goto_next_sibling_wasm"])(a0);
+        var _ts_tree_cursor_goto_previous_sibling_wasm = Module["_ts_tree_cursor_goto_previous_sibling_wasm"] = a0 => (_ts_tree_cursor_goto_previous_sibling_wasm = Module["_ts_tree_cursor_goto_previous_sibling_wasm"] = wasmExports["ts_tree_cursor_goto_previous_sibling_wasm"])(a0);
+        var _ts_tree_cursor_goto_descendant_wasm = Module["_ts_tree_cursor_goto_descendant_wasm"] = (a0, a1) => (_ts_tree_cursor_goto_descendant_wasm = Module["_ts_tree_cursor_goto_descendant_wasm"] = wasmExports["ts_tree_cursor_goto_descendant_wasm"])(a0, a1);
+        var _ts_tree_cursor_goto_parent_wasm = Module["_ts_tree_cursor_goto_parent_wasm"] = a0 => (_ts_tree_cursor_goto_parent_wasm = Module["_ts_tree_cursor_goto_parent_wasm"] = wasmExports["ts_tree_cursor_goto_parent_wasm"])(a0);
+        var _ts_tree_cursor_current_node_type_id_wasm = Module["_ts_tree_cursor_current_node_type_id_wasm"] = a0 => (_ts_tree_cursor_current_node_type_id_wasm = Module["_ts_tree_cursor_current_node_type_id_wasm"] = wasmExports["ts_tree_cursor_current_node_type_id_wasm"])(a0);
+        var _ts_tree_cursor_current_node_state_id_wasm = Module["_ts_tree_cursor_current_node_state_id_wasm"] = a0 => (_ts_tree_cursor_current_node_state_id_wasm = Module["_ts_tree_cursor_current_node_state_id_wasm"] = wasmExports["ts_tree_cursor_current_node_state_id_wasm"])(a0);
+        var _ts_tree_cursor_current_node_is_named_wasm = Module["_ts_tree_cursor_current_node_is_named_wasm"] = a0 => (_ts_tree_cursor_current_node_is_named_wasm = Module["_ts_tree_cursor_current_node_is_named_wasm"] = wasmExports["ts_tree_cursor_current_node_is_named_wasm"])(a0);
+        var _ts_tree_cursor_current_node_is_missing_wasm = Module["_ts_tree_cursor_current_node_is_missing_wasm"] = a0 => (_ts_tree_cursor_current_node_is_missing_wasm = Module["_ts_tree_cursor_current_node_is_missing_wasm"] = wasmExports["ts_tree_cursor_current_node_is_missing_wasm"])(a0);
+        var _ts_tree_cursor_current_node_id_wasm = Module["_ts_tree_cursor_current_node_id_wasm"] = a0 => (_ts_tree_cursor_current_node_id_wasm = Module["_ts_tree_cursor_current_node_id_wasm"] = wasmExports["ts_tree_cursor_current_node_id_wasm"])(a0);
+        var _ts_tree_cursor_start_position_wasm = Module["_ts_tree_cursor_start_position_wasm"] = a0 => (_ts_tree_cursor_start_position_wasm = Module["_ts_tree_cursor_start_position_wasm"] = wasmExports["ts_tree_cursor_start_position_wasm"])(a0);
+        var _ts_tree_cursor_end_position_wasm = Module["_ts_tree_cursor_end_position_wasm"] = a0 => (_ts_tree_cursor_end_position_wasm = Module["_ts_tree_cursor_end_position_wasm"] = wasmExports["ts_tree_cursor_end_position_wasm"])(a0);
+        var _ts_tree_cursor_start_index_wasm = Module["_ts_tree_cursor_start_index_wasm"] = a0 => (_ts_tree_cursor_start_index_wasm = Module["_ts_tree_cursor_start_index_wasm"] = wasmExports["ts_tree_cursor_start_index_wasm"])(a0);
+        var _ts_tree_cursor_end_index_wasm = Module["_ts_tree_cursor_end_index_wasm"] = a0 => (_ts_tree_cursor_end_index_wasm = Module["_ts_tree_cursor_end_index_wasm"] = wasmExports["ts_tree_cursor_end_index_wasm"])(a0);
+        var _ts_tree_cursor_current_field_id_wasm = Module["_ts_tree_cursor_current_field_id_wasm"] = a0 => (_ts_tree_cursor_current_field_id_wasm = Module["_ts_tree_cursor_current_field_id_wasm"] = wasmExports["ts_tree_cursor_current_field_id_wasm"])(a0);
+        var _ts_tree_cursor_current_depth_wasm = Module["_ts_tree_cursor_current_depth_wasm"] = a0 => (_ts_tree_cursor_current_depth_wasm = Module["_ts_tree_cursor_current_depth_wasm"] = wasmExports["ts_tree_cursor_current_depth_wasm"])(a0);
+        var _ts_tree_cursor_current_descendant_index_wasm = Module["_ts_tree_cursor_current_descendant_index_wasm"] = a0 => (_ts_tree_cursor_current_descendant_index_wasm = Module["_ts_tree_cursor_current_descendant_index_wasm"] = wasmExports["ts_tree_cursor_current_descendant_index_wasm"])(a0);
+        var _ts_tree_cursor_current_node_wasm = Module["_ts_tree_cursor_current_node_wasm"] = a0 => (_ts_tree_cursor_current_node_wasm = Module["_ts_tree_cursor_current_node_wasm"] = wasmExports["ts_tree_cursor_current_node_wasm"])(a0);
+        var _ts_node_symbol_wasm = Module["_ts_node_symbol_wasm"] = a0 => (_ts_node_symbol_wasm = Module["_ts_node_symbol_wasm"] = wasmExports["ts_node_symbol_wasm"])(a0);
+        var _ts_node_field_name_for_child_wasm = Module["_ts_node_field_name_for_child_wasm"] = (a0, a1) => (_ts_node_field_name_for_child_wasm = Module["_ts_node_field_name_for_child_wasm"] = wasmExports["ts_node_field_name_for_child_wasm"])(a0, a1);
+        var _ts_node_children_by_field_id_wasm = Module["_ts_node_children_by_field_id_wasm"] = (a0, a1) => (_ts_node_children_by_field_id_wasm = Module["_ts_node_children_by_field_id_wasm"] = wasmExports["ts_node_children_by_field_id_wasm"])(a0, a1);
+        var _ts_node_first_child_for_byte_wasm = Module["_ts_node_first_child_for_byte_wasm"] = a0 => (_ts_node_first_child_for_byte_wasm = Module["_ts_node_first_child_for_byte_wasm"] = wasmExports["ts_node_first_child_for_byte_wasm"])(a0);
+        var _ts_node_first_named_child_for_byte_wasm = Module["_ts_node_first_named_child_for_byte_wasm"] = a0 => (_ts_node_first_named_child_for_byte_wasm = Module["_ts_node_first_named_child_for_byte_wasm"] = wasmExports["ts_node_first_named_child_for_byte_wasm"])(a0);
+        var _ts_node_grammar_symbol_wasm = Module["_ts_node_grammar_symbol_wasm"] = a0 => (_ts_node_grammar_symbol_wasm = Module["_ts_node_grammar_symbol_wasm"] = wasmExports["ts_node_grammar_symbol_wasm"])(a0);
+        var _ts_node_child_count_wasm = Module["_ts_node_child_count_wasm"] = a0 => (_ts_node_child_count_wasm = Module["_ts_node_child_count_wasm"] = wasmExports["ts_node_child_count_wasm"])(a0);
+        var _ts_node_named_child_count_wasm = Module["_ts_node_named_child_count_wasm"] = a0 => (_ts_node_named_child_count_wasm = Module["_ts_node_named_child_count_wasm"] = wasmExports["ts_node_named_child_count_wasm"])(a0);
+        var _ts_node_child_wasm = Module["_ts_node_child_wasm"] = (a0, a1) => (_ts_node_child_wasm = Module["_ts_node_child_wasm"] = wasmExports["ts_node_child_wasm"])(a0, a1);
+        var _ts_node_named_child_wasm = Module["_ts_node_named_child_wasm"] = (a0, a1) => (_ts_node_named_child_wasm = Module["_ts_node_named_child_wasm"] = wasmExports["ts_node_named_child_wasm"])(a0, a1);
+        var _ts_node_child_by_field_id_wasm = Module["_ts_node_child_by_field_id_wasm"] = (a0, a1) => (_ts_node_child_by_field_id_wasm = Module["_ts_node_child_by_field_id_wasm"] = wasmExports["ts_node_child_by_field_id_wasm"])(a0, a1);
+        var _ts_node_next_sibling_wasm = Module["_ts_node_next_sibling_wasm"] = a0 => (_ts_node_next_sibling_wasm = Module["_ts_node_next_sibling_wasm"] = wasmExports["ts_node_next_sibling_wasm"])(a0);
+        var _ts_node_prev_sibling_wasm = Module["_ts_node_prev_sibling_wasm"] = a0 => (_ts_node_prev_sibling_wasm = Module["_ts_node_prev_sibling_wasm"] = wasmExports["ts_node_prev_sibling_wasm"])(a0);
+        var _ts_node_next_named_sibling_wasm = Module["_ts_node_next_named_sibling_wasm"] = a0 => (_ts_node_next_named_sibling_wasm = Module["_ts_node_next_named_sibling_wasm"] = wasmExports["ts_node_next_named_sibling_wasm"])(a0);
+        var _ts_node_prev_named_sibling_wasm = Module["_ts_node_prev_named_sibling_wasm"] = a0 => (_ts_node_prev_named_sibling_wasm = Module["_ts_node_prev_named_sibling_wasm"] = wasmExports["ts_node_prev_named_sibling_wasm"])(a0);
+        var _ts_node_descendant_count_wasm = Module["_ts_node_descendant_count_wasm"] = a0 => (_ts_node_descendant_count_wasm = Module["_ts_node_descendant_count_wasm"] = wasmExports["ts_node_descendant_count_wasm"])(a0);
+        var _ts_node_parent_wasm = Module["_ts_node_parent_wasm"] = a0 => (_ts_node_parent_wasm = Module["_ts_node_parent_wasm"] = wasmExports["ts_node_parent_wasm"])(a0);
+        var _ts_node_descendant_for_index_wasm = Module["_ts_node_descendant_for_index_wasm"] = a0 => (_ts_node_descendant_for_index_wasm = Module["_ts_node_descendant_for_index_wasm"] = wasmExports["ts_node_descendant_for_index_wasm"])(a0);
+        var _ts_node_named_descendant_for_index_wasm = Module["_ts_node_named_descendant_for_index_wasm"] = a0 => (_ts_node_named_descendant_for_index_wasm = Module["_ts_node_named_descendant_for_index_wasm"] = wasmExports["ts_node_named_descendant_for_index_wasm"])(a0);
+        var _ts_node_descendant_for_position_wasm = Module["_ts_node_descendant_for_position_wasm"] = a0 => (_ts_node_descendant_for_position_wasm = Module["_ts_node_descendant_for_position_wasm"] = wasmExports["ts_node_descendant_for_position_wasm"])(a0);
+        var _ts_node_named_descendant_for_position_wasm = Module["_ts_node_named_descendant_for_position_wasm"] = a0 => (_ts_node_named_descendant_for_position_wasm = Module["_ts_node_named_descendant_for_position_wasm"] = wasmExports["ts_node_named_descendant_for_position_wasm"])(a0);
+        var _ts_node_start_point_wasm = Module["_ts_node_start_point_wasm"] = a0 => (_ts_node_start_point_wasm = Module["_ts_node_start_point_wasm"] = wasmExports["ts_node_start_point_wasm"])(a0);
+        var _ts_node_end_point_wasm = Module["_ts_node_end_point_wasm"] = a0 => (_ts_node_end_point_wasm = Module["_ts_node_end_point_wasm"] = wasmExports["ts_node_end_point_wasm"])(a0);
+        var _ts_node_start_index_wasm = Module["_ts_node_start_index_wasm"] = a0 => (_ts_node_start_index_wasm = Module["_ts_node_start_index_wasm"] = wasmExports["ts_node_start_index_wasm"])(a0);
+        var _ts_node_end_index_wasm = Module["_ts_node_end_index_wasm"] = a0 => (_ts_node_end_index_wasm = Module["_ts_node_end_index_wasm"] = wasmExports["ts_node_end_index_wasm"])(a0);
+        var _ts_node_to_string_wasm = Module["_ts_node_to_string_wasm"] = a0 => (_ts_node_to_string_wasm = Module["_ts_node_to_string_wasm"] = wasmExports["ts_node_to_string_wasm"])(a0);
+        var _ts_node_children_wasm = Module["_ts_node_children_wasm"] = a0 => (_ts_node_children_wasm = Module["_ts_node_children_wasm"] = wasmExports["ts_node_children_wasm"])(a0);
+        var _ts_node_named_children_wasm = Module["_ts_node_named_children_wasm"] = a0 => (_ts_node_named_children_wasm = Module["_ts_node_named_children_wasm"] = wasmExports["ts_node_named_children_wasm"])(a0);
+        var _ts_node_descendants_of_type_wasm = Module["_ts_node_descendants_of_type_wasm"] = (a0, a1, a2, a3, a4, a5, a6) => (_ts_node_descendants_of_type_wasm = Module["_ts_node_descendants_of_type_wasm"] = wasmExports["ts_node_descendants_of_type_wasm"])(a0, a1, a2, a3, a4, a5, a6);
+        var _ts_node_is_named_wasm = Module["_ts_node_is_named_wasm"] = a0 => (_ts_node_is_named_wasm = Module["_ts_node_is_named_wasm"] = wasmExports["ts_node_is_named_wasm"])(a0);
+        var _ts_node_has_changes_wasm = Module["_ts_node_has_changes_wasm"] = a0 => (_ts_node_has_changes_wasm = Module["_ts_node_has_changes_wasm"] = wasmExports["ts_node_has_changes_wasm"])(a0);
+        var _ts_node_has_error_wasm = Module["_ts_node_has_error_wasm"] = a0 => (_ts_node_has_error_wasm = Module["_ts_node_has_error_wasm"] = wasmExports["ts_node_has_error_wasm"])(a0);
+        var _ts_node_is_error_wasm = Module["_ts_node_is_error_wasm"] = a0 => (_ts_node_is_error_wasm = Module["_ts_node_is_error_wasm"] = wasmExports["ts_node_is_error_wasm"])(a0);
+        var _ts_node_is_missing_wasm = Module["_ts_node_is_missing_wasm"] = a0 => (_ts_node_is_missing_wasm = Module["_ts_node_is_missing_wasm"] = wasmExports["ts_node_is_missing_wasm"])(a0);
+        var _ts_node_is_extra_wasm = Module["_ts_node_is_extra_wasm"] = a0 => (_ts_node_is_extra_wasm = Module["_ts_node_is_extra_wasm"] = wasmExports["ts_node_is_extra_wasm"])(a0);
+        var _ts_node_parse_state_wasm = Module["_ts_node_parse_state_wasm"] = a0 => (_ts_node_parse_state_wasm = Module["_ts_node_parse_state_wasm"] = wasmExports["ts_node_parse_state_wasm"])(a0);
+        var _ts_node_next_parse_state_wasm = Module["_ts_node_next_parse_state_wasm"] = a0 => (_ts_node_next_parse_state_wasm = Module["_ts_node_next_parse_state_wasm"] = wasmExports["ts_node_next_parse_state_wasm"])(a0);
+        var _ts_query_matches_wasm = Module["_ts_query_matches_wasm"] = (a0, a1, a2, a3, a4, a5, a6, a7, a8, a9) => (_ts_query_matches_wasm = Module["_ts_query_matches_wasm"] = wasmExports["ts_query_matches_wasm"])(a0, a1, a2, a3, a4, a5, a6, a7, a8, a9);
+        var _ts_query_captures_wasm = Module["_ts_query_captures_wasm"] = (a0, a1, a2, a3, a4, a5, a6, a7, a8, a9) => (_ts_query_captures_wasm = Module["_ts_query_captures_wasm"] = wasmExports["ts_query_captures_wasm"])(a0, a1, a2, a3, a4, a5, a6, a7, a8, a9);
+        var _iswalpha = Module["_iswalpha"] = a0 => (_iswalpha = Module["_iswalpha"] = wasmExports["iswalpha"])(a0);
+        var _iswblank = Module["_iswblank"] = a0 => (_iswblank = Module["_iswblank"] = wasmExports["iswblank"])(a0);
+        var _iswdigit = Module["_iswdigit"] = a0 => (_iswdigit = Module["_iswdigit"] = wasmExports["iswdigit"])(a0);
+        var _iswlower = Module["_iswlower"] = a0 => (_iswlower = Module["_iswlower"] = wasmExports["iswlower"])(a0);
+        var _iswupper = Module["_iswupper"] = a0 => (_iswupper = Module["_iswupper"] = wasmExports["iswupper"])(a0);
+        var _iswxdigit = Module["_iswxdigit"] = a0 => (_iswxdigit = Module["_iswxdigit"] = wasmExports["iswxdigit"])(a0);
+        var _memchr = Module["_memchr"] = (a0, a1, a2) => (_memchr = Module["_memchr"] = wasmExports["memchr"])(a0, a1, a2);
+        var _strlen = Module["_strlen"] = a0 => (_strlen = Module["_strlen"] = wasmExports["strlen"])(a0);
+        var _strcmp = Module["_strcmp"] = (a0, a1) => (_strcmp = Module["_strcmp"] = wasmExports["strcmp"])(a0, a1);
+        var _strncat = Module["_strncat"] = (a0, a1, a2) => (_strncat = Module["_strncat"] = wasmExports["strncat"])(a0, a1, a2);
+        var _strncpy = Module["_strncpy"] = (a0, a1, a2) => (_strncpy = Module["_strncpy"] = wasmExports["strncpy"])(a0, a1, a2);
+        var _towlower = Module["_towlower"] = a0 => (_towlower = Module["_towlower"] = wasmExports["towlower"])(a0);
+        var _towupper = Module["_towupper"] = a0 => (_towupper = Module["_towupper"] = wasmExports["towupper"])(a0);
+        var _setThrew = (a0, a1) => (_setThrew = wasmExports["setThrew"])(a0, a1);
         var __emscripten_stack_restore = a0 => (__emscripten_stack_restore = wasmExports["_emscripten_stack_restore"])(a0);
         var __emscripten_stack_alloc = a0 => (__emscripten_stack_alloc = wasmExports["_emscripten_stack_alloc"])(a0);
         var _emscripten_stack_get_current = () => (_emscripten_stack_get_current = wasmExports["emscripten_stack_get_current"])();
-        var dynCall_jiji = Module["dynCall_jiji"] = createExportWrapper("dynCall_jiji", 5);
-        var _orig$ts_parser_timeout_micros = Module["_orig$ts_parser_timeout_micros"] = createExportWrapper("orig$ts_parser_timeout_micros", 1);
-        var _orig$ts_parser_set_timeout_micros = Module["_orig$ts_parser_set_timeout_micros"] = createExportWrapper("orig$ts_parser_set_timeout_micros", 2);
+        var dynCall_jiji = Module["dynCall_jiji"] = (a0, a1, a2, a3, a4) => (dynCall_jiji = Module["dynCall_jiji"] = wasmExports["dynCall_jiji"])(a0, a1, a2, a3, a4);
+        var _orig$ts_parser_timeout_micros = Module["_orig$ts_parser_timeout_micros"] = a0 => (_orig$ts_parser_timeout_micros = Module["_orig$ts_parser_timeout_micros"] = wasmExports["orig$ts_parser_timeout_micros"])(a0);
+        var _orig$ts_parser_set_timeout_micros = Module["_orig$ts_parser_set_timeout_micros"] = (a0, a1) => (_orig$ts_parser_set_timeout_micros = Module["_orig$ts_parser_set_timeout_micros"] = wasmExports["orig$ts_parser_set_timeout_micros"])(a0, a1);
         // include: postamble.js
         // === Auto-generated postamble setup entry stuff ===
         Module["AsciiToString"] = AsciiToString;
         Module["stringToUTF16"] = stringToUTF16;
-        var missingLibrarySymbols = [ "writeI53ToI64", "writeI53ToI64Clamped", "writeI53ToI64Signaling", "writeI53ToU64Clamped", "writeI53ToU64Signaling", "readI53FromI64", "readI53FromU64", "convertI32PairToI53", "convertU32PairToI53", "getTempRet0", "setTempRet0", "isLeapYear", "ydayFromDate", "arraySum", "addDays", "strError", "inetPton4", "inetNtop4", "inetPton6", "inetNtop6", "readSockaddr", "writeSockaddr", "initRandomFill", "randomFill", "emscriptenLog", "readEmAsmArgs", "runEmAsmFunction", "runMainThreadEmAsm", "jstoi_q", "getExecutableName", "listenOnce", "autoResumeAudioContext", "getDynCaller", "runtimeKeepalivePush", "runtimeKeepalivePop", "callUserCallback", "maybeExit", "asmjsMangle", "mmapAlloc", "HandleAllocator", "getNativeTypeSize", "STACK_SIZE", "STACK_ALIGN", "POINTER_SIZE", "ASSERTIONS", "getCFunc", "ccall", "cwrap", "removeFunction", "reallyNegative", "strLen", "reSign", "formatString", "intArrayFromString", "intArrayToString", "stringToAscii", "UTF16ToString", "lengthBytesUTF16", "UTF32ToString", "stringToUTF32", "lengthBytesUTF32", "stringToNewUTF8", "writeArrayToMemory", "registerKeyEventCallback", "maybeCStringToJsString", "findEventTarget", "getBoundingClientRect", "fillMouseEventData", "registerMouseEventCallback", "registerWheelEventCallback", "registerUiEventCallback", "registerFocusEventCallback", "fillDeviceOrientationEventData", "registerDeviceOrientationEventCallback", "fillDeviceMotionEventData", "registerDeviceMotionEventCallback", "screenOrientation", "fillOrientationChangeEventData", "registerOrientationChangeEventCallback", "fillFullscreenChangeEventData", "registerFullscreenChangeEventCallback", "JSEvents_requestFullscreen", "JSEvents_resizeCanvasForFullscreen", "registerRestoreOldStyle", "hideEverythingExceptGivenElement", "restoreHiddenElements", "setLetterbox", "softFullscreenResizeWebGLRenderTarget", "doRequestFullscreen", "fillPointerlockChangeEventData", "registerPointerlockChangeEventCallback", "registerPointerlockErrorEventCallback", "requestPointerLock", "fillVisibilityChangeEventData", "registerVisibilityChangeEventCallback", "registerTouchEventCallback", "fillGamepadEventData", "registerGamepadEventCallback", "registerBeforeUnloadEventCallback", "fillBatteryEventData", "battery", "registerBatteryEventCallback", "setCanvasElementSize", "getCanvasElementSize", "jsStackTrace", "getCallstack", "convertPCtoSourceLocation", "getEnvStrings", "checkWasiClock", "wasiRightsToMuslOFlags", "wasiOFlagsToMuslOFlags", "createDyncallWrapper", "safeSetTimeout", "setImmediateWrapped", "clearImmediateWrapped", "polyfillSetImmediate", "getPromise", "makePromise", "idsToPromises", "makePromiseCallback", "Browser_asyncPrepareDataCounter", "setMainLoop", "getSocketFromFD", "getSocketAddress", "dlopenInternal", "heapObjectForWebGLType", "toTypedArrayIndex", "webgl_enable_ANGLE_instanced_arrays", "webgl_enable_OES_vertex_array_object", "webgl_enable_WEBGL_draw_buffers", "webgl_enable_WEBGL_multi_draw", "emscriptenWebGLGet", "computeUnpackAlignedImageSize", "colorChannelsInGlTextureFormat", "emscriptenWebGLGetTexPixelData", "emscriptenWebGLGetUniform", "webglGetUniformLocation", "webglPrepareUniformLocationsBeforeFirstUse", "webglGetLeftBracePos", "emscriptenWebGLGetVertexAttrib", "__glGetActiveAttribOrUniform", "writeGLArray", "registerWebGlEventCallback", "runAndAbortIfError", "ALLOC_NORMAL", "ALLOC_STACK", "allocate", "writeStringToMemory", "writeAsciiToMemory", "setErrNo", "demangle", "stackTrace" ];
-        missingLibrarySymbols.forEach(missingLibrarySymbol);
-        var unexportedSymbols = [ "run", "addOnPreRun", "addOnInit", "addOnPreMain", "addOnExit", "addOnPostRun", "addRunDependency", "removeRunDependency", "out", "err", "callMain", "abort", "wasmMemory", "wasmExports", "writeStackCookie", "checkStackCookie", "convertI32PairToI53Checked", "stackSave", "stackRestore", "stackAlloc", "ptrToString", "zeroMemory", "exitJS", "getHeapMax", "growMemory", "ENV", "MONTH_DAYS_REGULAR", "MONTH_DAYS_LEAP", "MONTH_DAYS_REGULAR_CUMULATIVE", "MONTH_DAYS_LEAP_CUMULATIVE", "ERRNO_CODES", "DNS", "Protocols", "Sockets", "timers", "warnOnce", "readEmAsmArgsArray", "jstoi_s", "dynCallLegacy", "dynCall", "handleException", "keepRuntimeAlive", "asyncLoad", "alignMemory", "wasmTable", "noExitRuntime", "uleb128Encode", "sigToWasmTypes", "generateFuncType", "convertJsFunctionToWasm", "freeTableIndexes", "functionsInTableMap", "getEmptyTableSlot", "updateTableMap", "getFunctionAddress", "addFunction", "unSign", "setValue", "getValue", "PATH", "PATH_FS", "UTF8Decoder", "UTF8ArrayToString", "UTF8ToString", "stringToUTF8Array", "stringToUTF8", "lengthBytesUTF8", "UTF16Decoder", "stringToUTF8OnStack", "JSEvents", "specialHTMLTargets", "findCanvasEventTarget", "currentFullscreenStrategy", "restoreOldWindowedStyle", "UNWIND_CACHE", "ExitStatus", "flush_NO_FILESYSTEM", "promiseMap", "Browser", "getPreloadedImageData__data", "wget", "SYSCALLS", "isSymbolDefined", "GOT", "currentModuleWeakSymbols", "LDSO", "getMemory", "mergeLibSymbols", "loadWebAssemblyModule", "newDSO", "loadDynamicLibrary", "tempFixedLengthArray", "miniTempWebGLFloatBuffers", "miniTempWebGLIntBuffers", "GL", "AL", "GLUT", "EGL", "GLEW", "IDBStore", "SDL", "SDL_gfx", "allocateUTF8", "allocateUTF8OnStack", "print", "printErr", "LE_HEAP_STORE_U16", "LE_HEAP_STORE_I16", "LE_HEAP_STORE_U32", "LE_HEAP_STORE_I32", "LE_HEAP_STORE_F32", "LE_HEAP_STORE_F64", "LE_HEAP_LOAD_U16", "LE_HEAP_LOAD_I16", "LE_HEAP_LOAD_U32", "LE_HEAP_LOAD_I32", "LE_HEAP_LOAD_F32", "LE_HEAP_LOAD_F64" ];
-        unexportedSymbols.forEach(unexportedRuntimeSymbol);
         var calledRun;
         dependenciesFulfilled = function runCaller() {
           // If run has never been called, and we should call run (INVOKE_RUN is true, and Module.noInitialRun is not false)
@@ -2474,8 +1922,6 @@ var TreeSitter = function() {
         };
         // try this again later, after new deps are fulfilled
         function callMain(args = []) {
-          assert(runDependencies == 0, 'cannot call main when async dependencies remain! (listen on Module["onRuntimeInitialized"])');
-          assert(__ATPRERUN__.length == 0, "cannot call main when preRun functions remain to be called");
           var entryFunction = resolveGlobalSymbol("main").sym;
           // Main modules can't tell if they have main() at compile time, since it may
           // arrive from a dynamic library.
@@ -2498,19 +1944,10 @@ var TreeSitter = function() {
             return handleException(e);
           }
         }
-        function stackCheckInit() {
-          // This is normally called automatically during __wasm_call_ctors but need to
-          // get these values before even running any of the ctors so we call it redundantly
-          // here.
-          _emscripten_stack_set_limits(78144, 12608);
-          // TODO(sbc): Move writeStackCookie to native to to avoid this.
-          writeStackCookie();
-        }
         function run(args = arguments_) {
           if (runDependencies > 0) {
             return;
           }
-          stackCheckInit();
           preRun();
           // a preRun added a dependency, run will be called later
           if (runDependencies > 0) {
@@ -2540,36 +1977,6 @@ var TreeSitter = function() {
           } else {
             doRun();
           }
-          checkStackCookie();
-        }
-        function checkUnflushedContent() {
-          // Compiler settings do not allow exiting the runtime, so flushing
-          // the streams is not possible. but in ASSERTIONS mode we check
-          // if there was something to flush, and if so tell the user they
-          // should request that the runtime be exitable.
-          // Normally we would not even include flush() at all, but in ASSERTIONS
-          // builds we do so just for this check, and here we see if there is any
-          // content to flush, that is, we check if there would have been
-          // something a non-ASSERTIONS build would have not seen.
-          // How we flush the streams depends on whether we are in SYSCALLS_REQUIRE_FILESYSTEM=0
-          // mode (which has its own special function for this; otherwise, all
-          // the code is inside libc)
-          var oldOut = out;
-          var oldErr = err;
-          var has = false;
-          out = err = x => {
-            has = true;
-          };
-          try {
-            // it doesn't matter if it fails
-            flush_NO_FILESYSTEM();
-          } catch (e) {}
-          out = oldOut;
-          err = oldErr;
-          if (has) {
-            warnOnce("stdio streams had content in them that was not flushed. you should set EXIT_RUNTIME to 1 (see the Emscripten FAQ), or make sure to emit a newline when you printf etc.");
-            warnOnce("(this may also be due to not including full filesystem support - try building with -sFORCE_FILESYSTEM)");
-          }
         }
         if (Module["preInit"]) {
           if (typeof Module["preInit"] == "function") Module["preInit"] = [ Module["preInit"] ];
@@ -2582,7 +1989,7 @@ var TreeSitter = function() {
         if (Module["noInitialRun"]) shouldRunNow = false;
         run();
         // end include: postamble.js
-        // include: /home/user/src/ts-playground-setup/tree-sitter/lib/binding_web/binding.js
+        // include: tree-sitter/lib/binding_web/binding.js
         /* eslint-disable-next-line spaced-comment */ /// <reference types="emscripten" />
         /* eslint-disable-next-line spaced-comment */ /// <reference path="tree-sitter-web.d.ts"/>
         const C = Module;
@@ -3846,8 +3253,8 @@ var TreeSitter = function() {
           setValue(address, edit.newEndIndex, "i32");
           address += SIZE_OF_INT;
         }
-        // end include: /home/user/src/ts-playground-setup/tree-sitter/lib/binding_web/binding.js
-        // include: /home/user/src/ts-playground-setup/tree-sitter/lib/binding_web/suffix.js
+        // end include: tree-sitter/lib/binding_web/binding.js
+        // include: tree-sitter/lib/binding_web/suffix.js
         for (const name of Object.getOwnPropertyNames(ParserImpl.prototype)) {
           Object.defineProperty(Parser.prototype, name, {
             value: ParserImpl.prototype[name],

@@ -311,7 +311,7 @@
     (os/cd "tree-sitter")
     # among other things, creates lib/binding_web/tree-sitter.{js,wasm}
     (plogf "* Building tree-sitter.{js,wasm}")
-    (do-command ["bash" "script/build-wasm" "--debug"] :pe env-with-emcc)
+    (do-command ["bash" "script/build-wasm"] :pe env-with-emcc)
     # copy to web-root, lib/binding_web/tree-sitter.{js,wasm}
     (plogf "* Copying some files into %s directory..." web-root)
     (spit (string "../" web-root "/tree-sitter.js")
@@ -327,6 +327,30 @@
           (slurp "docs/assets/js/playground.js"))
     (spit (string "../" web-root "/playground.html")
           (slurp "cli/src/playground.html"))))
+
+(defn patch-tsjs
+  [{:root-dir root-dir :web-root web-root}]
+  (os/cd root-dir)
+
+  (def tsjs-path (string web-root "/tree-sitter.js"))
+
+  (def tsjs (slurp tsjs-path))
+
+  (def lines @[])
+
+  (each line (string/split "\n" tsjs)
+    (array/push lines
+                (if-let [_ (string/find "include: /" line)]
+                  (let [[left right]
+                        (peg/match ~(sequence (capture (thru "include: "))
+                                              (capture (to -1)))
+                                   line)]
+                    (string left
+                            (string/replace (string root-dir "/") ""
+                                            right)))
+                  line)))
+
+  (spit tsjs-path (string/join lines "\n")))
 
 (defn scan-and-patch-playground-html
   [{:root-dir root-dir :web-root web-root} grammar-repos]
@@ -510,6 +534,9 @@
 
   (remark "Building and copying playground files")
   (prepare-and-grab-playground-bits conf env-with-emcc)
+
+  (remark "Patching tree-sitter.js for reproducibility")
+  (patch-tsjs conf)
 
   (remark "Scanning and patching playground.html")
   (def [js-urls css-urls]
