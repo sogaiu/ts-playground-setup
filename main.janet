@@ -178,8 +178,17 @@
 
 ########################################################################
 
+(defn remark
+  [message step]
+  (plogf (string "%d. " message) step))
+
+########################################################################
+
 (defn check-prelims
-  [{:root-dir root-dir}]
+  [state]
+  (def {:root-dir root-dir :step step} state)
+  (remark "Checking preliminaries" step)
+
   (os/cd root-dir)
 
   (def [result _]
@@ -195,10 +204,15 @@
 
   (assert emsdk-version
           (string "failed to guess emsdk version.\n"
-                  "tip: can specify a value via emsdk-version\n")))
+                  "tip: can specify a value via emsdk-version\n"))
+
+  (put state :step (inc step)))
 
 (defn detect-grammars
-  [{:root-dir root-dir}]
+  [state]
+  (def {:root-dir root-dir :step step} state)
+  (remark "Detecting grammars" step)
+
   (os/cd root-dir)
 
   (def grammar-repos
@@ -216,20 +230,37 @@
   (each [url _] grammar-repos
     (plogf "* %s" url))
 
-  grammar-repos)
+  (-> state
+      (put :grammar-repos grammar-repos)
+      (put :step (inc step))))
 
 (defn clone-repos
-  [{:root-dir root-dir} repos]
+  [state]
+  (def {:root-dir root-dir :step step
+        :ts-repo ts-repo :emsdk-repo emsdk-repo
+        :grammar-repos grammar-repos} state)
+  (remark "Cloning repositories" step)
+
+  (def repos @[ts-repo
+               emsdk-repo
+               ;(map |[(first $)] grammar-repos)])
+
   (os/cd root-dir)
 
   (each [url branch] repos
     (when (not (os/stat (tail-from-url url)))
       (def branch-part (if branch ["--branch" branch] []))
       (plogf "* Cloning %s..." url)
-      (do-command ["git" "clone" "--depth" "1" ;branch-part url] :p))))
+      (do-command ["git" "clone" "--depth" "1" ;branch-part url] :p)))
+
+  (put state :step (inc step)))
 
 (defn setup-emsdk
-  [{:root-dir root-dir :emsdk-version emsdk-version}]
+  [state]
+  (def {:root-dir root-dir :step step
+        :emsdk-version emsdk-version} state)
+  (remark "Setting up emsdk" step)
+
   (os/cd root-dir)
 
   (def emsdk-version-from-ts
@@ -263,10 +294,16 @@
   # XXX: can use this to see if emcc is available using env-with-emcc
   '(os/execute ["which" "emcc"] :pex env-with-emcc)
 
-  env-with-emcc)
+  (-> state
+      (put :env-with-emcc env-with-emcc)
+      (put :step (inc step))))
 
 (defn make-web-skeleton
-  [{:root-dir root-dir :web-root web-root}]
+  [state]
+  (def {:root-dir root-dir :step step
+        :web-root web-root} state)
+  (remark "Preparing web root skeleton" step)
+
   (os/cd root-dir)
 
   (each path [web-root
@@ -274,10 +311,16 @@
               (string web-root "/assets/images")
               (string web-root "/assets/css")
               (string web-root "/assets/wasm")]
-    (os/mkdir path)))
+    (os/mkdir path))
+
+  (put state :step (inc step)))
 
 (defn prepare-grammar-wasms
-  [{:root-dir root-dir :web-root web-root} grammar-repos env-with-emcc]
+  [state]
+  (def {:root-dir root-dir :step step
+        :web-root web-root :grammar-repos grammar-repos
+        :env-with-emcc env-with-emcc} state)
+  (remark "Building and copying grammar .wasm files" step)
   (os/cd root-dir)
 
   (each [url extra] grammar-repos
@@ -301,10 +344,15 @@
         (plogf "* Building .wasm for %s..." name)
         (ts-build-wasm env-with-emcc)
         # copy built wasm into web-root
-        (spit wasm-path (slurp wasm-name))))))
+        (spit wasm-path (slurp wasm-name)))))
+
+  (put state :step (inc step)))
 
 (defn prepare-and-grab-playground-bits
-  [{:root-dir root-dir :web-root web-root} env-with-emcc]
+  [state]
+  (def {:root-dir root-dir :step step
+        :web-root web-root :env-with-emcc env-with-emcc} state)
+  (remark "Building and copying playground files" step)
   (os/cd root-dir)
 
   (defer (os/cd root-dir)
@@ -326,10 +374,16 @@
     (spit (string "../" web-root "/playground.js")
           (slurp "docs/assets/js/playground.js"))
     (spit (string "../" web-root "/playground.html")
-          (slurp "cli/src/playground.html"))))
+          (slurp "cli/src/playground.html")))
+
+  (put state :step (inc step)))
 
 (defn patch-tsjs
-  [{:root-dir root-dir :web-root web-root}]
+  [state]
+  (def {:root-dir root-dir :step step
+        :web-root web-root} state)
+  (remark "Patching tree-sitter.js for reproducibility" step)
+
   (os/cd root-dir)
 
   (def tsjs-path (string web-root "/tree-sitter.js"))
@@ -350,10 +404,16 @@
                                             right)))
                   line)))
 
-  (spit tsjs-path (string/join lines "\n")))
+  (spit tsjs-path (string/join lines "\n"))
+
+  (put state :step (inc step)))
 
 (defn scan-and-patch-playground-html
-  [{:root-dir root-dir :web-root web-root} grammar-repos]
+  [state]
+  (def {:root-dir root-dir :step step
+        :web-root web-root :grammar-repos grammar-repos} state)
+  (remark "Scanning and patching playground.html" step)
+
   (os/cd root-dir)
 
   (def pg-path (string web-root "/playground.html"))
@@ -446,10 +506,17 @@
 
   (spit pg-path pg)
 
-  [js-urls css-urls])
+  (-> state
+      (put :js-urls js-urls)
+      (put :css-urls css-urls)
+      (put :step (inc step))))
 
 (defn fetch-css
-  [{:root-dir root-dir :web-root web-root} css-urls]
+  [state]
+  (def {:root-dir root-dir :step step
+        :web-root web-root :css-urls css-urls} state)
+  (remark "Fetching external .css files" step)
+
   (os/cd root-dir)
 
   (defer (os/cd root-dir)
@@ -458,10 +525,16 @@
       (def name (tail-from-url css-url))
       (do-command ["curl" "--output" name
                    "--location"
-                   css-url] :p))))
+                   css-url] :p)))
+
+  (put state :step (inc step)))
 
 (defn fetch-js
-  [{:root-dir root-dir :web-root web-root} js-urls]
+  [state]
+  (def {:root-dir root-dir :step step
+        :web-root web-root :js-urls js-urls} state)
+  (remark "Fetching external .js files" step)
+
   (os/cd root-dir)
 
   (defer (os/cd root-dir)
@@ -470,13 +543,17 @@
       (def name (tail-from-url js-url))
       (do-command ["curl" "--output" name
                    "--location"
-                   js-url] :p))))
+                   js-url] :p)))
 
-(defn report
-  [{:root-dir root-dir :web-root web-root}]
+  (put state :step (inc step)))
+
+(defn advise
+  [state]
+  (def {:root-dir root-dir :step step
+        :web-root web-root} state)
+  (remark "Giving some parting advice" step)
+
   (os/cd root-dir)
-
-  (print "Done.\n")
 
   (printf "To test:\n")
   (printf "1. Start a web server in the directory named %s, e.g." web-root)
@@ -485,70 +562,32 @@
   (print)
   (printf "2. Visit the playground.html file in a browser via http, e.g.")
   (print)
-  (printf "   xdg-open http://localhost:8000/playground.html"))
+  (printf "   xdg-open http://localhost:8000/playground.html")
 
-########################################################################
-
-(defmacro begin
-  []
-  ~(var step -1))
-
-(defmacro remark
-  [message]
-  ~(plogf (string "%d. " ,message) (++ step)))
-
-(defmacro end
-  []
-  ~(printf "Total steps taken: %d" step))
+  (put state :step (inc step)))
 
 ########################################################################
 
 (defn main
   [& argv]
-  (def conf @{:root-dir (os/cwd)
-              :emsdk-version emsdk-version
-              :web-root web-root})
+  (def state @{:root-dir (os/cwd)
+               :ts-repo ts-repo
+               :emsdk-repo emsdk-repo
+               :emsdk-version emsdk-version
+               :web-root web-root
+               :step 0})
 
-  (begin)
-
-  (remark "Checking preliminaries")
-  (check-prelims conf)
-
-  (remark "Detecting grammars")
-  (def grammar-repos (detect-grammars conf))
-
-  (remark "Cloning repositories")
-  (clone-repos conf
-               @[ts-repo
-                 emsdk-repo
-                 ;(map |[(first $)] grammar-repos)])
-
-  (remark "Setting up emsdk")
-  (def env-with-emcc (setup-emsdk conf))
-
-  (remark "Preparing web root skeleton")
-  (make-web-skeleton conf)
-
-  (remark "Building and copying grammar .wasm files")
-  (prepare-grammar-wasms conf grammar-repos env-with-emcc)
-
-  (remark "Building and copying playground files")
-  (prepare-and-grab-playground-bits conf env-with-emcc)
-
-  (remark "Patching tree-sitter.js for reproducibility")
-  (patch-tsjs conf)
-
-  (remark "Scanning and patching playground.html")
-  (def [js-urls css-urls]
-    (scan-and-patch-playground-html conf grammar-repos))
-
-  (remark "Fetching external .css files")
-  (fetch-css conf css-urls)
-
-  (remark "Fetching external .js files")
-  (fetch-js conf js-urls)
-
-  (end)
-
-  (report conf))
+  (-> state
+      check-prelims
+      detect-grammars
+      clone-repos
+      setup-emsdk
+      make-web-skeleton
+      prepare-grammar-wasms
+      prepare-and-grab-playground-bits
+      patch-tsjs
+      scan-and-patch-playground-html
+      fetch-css
+      fetch-js
+      advise))
 
