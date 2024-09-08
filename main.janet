@@ -378,7 +378,8 @@
           (os/cd extra))
         # make sure src/parser.c and friends exist
         (plogf "* Generating parser.c and friends for %s..." name)
-        (do-command [ts-bin-path "generate" "--no-bindings"] :p)
+        (do-command [ts-bin-path "generate" "--no-bindings"] :pe
+                    env-with-emcc)
         # build wasm files
         (plogf "* Building .wasm for %s..." name)
         (ts-build-wasm env-with-emcc)
