@@ -317,8 +317,8 @@
     (case (dyn :tps-os)
       :cygwin (error "sorry, not tested yet")
       :windows (error "sorry, not tested yet")
-      :mingw (string root-dir `\node\` version-dir-name `\bin`)
-      (string root-dir "/node/" version-dir-name "/bin")))
+      :mingw (string root-dir `\emsdk\node\` version-dir-name `\bin`)
+      (string root-dir "/emsdk/node/" version-dir-name "/bin")))
 
   # https://github.com/emscripten-core/emsdk/issues/1142#issuecomment-1334065131
   # ...but not enough to get node that way
