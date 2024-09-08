@@ -301,22 +301,24 @@
                      version-dir-name)
           (string/format "unexpected dir name: %s" version-dir-name))
 
+  (def os (dyn :tps-os))
+
   (def path-sep
-    (case (dyn :tps-os)
+    (case os
       :cygwin (error "sorry, not tested yet")
       :windows (error "sorry, not tested yet")
       :mingw ";"
       ":"))
 
   (def em-path
-    (case (dyn :tps-os)
+    (case os
       :cygwin (error "sorry, not tested yet")
       :windows (error "sorry, not tested yet")
       :mingw (string root-dir `\emsdk\upstream\emscripten`)
       (string root-dir "/emsdk/upstream/emscripten")))
 
   (def node-bin-dir-path
-    (case (dyn :tps-os)
+    (case os
       :cygwin (error "sorry, not tested yet")
       :windows (error "sorry, not tested yet")
       :mingw (string root-dir `\emsdk\node\` version-dir-name `\bin`)
