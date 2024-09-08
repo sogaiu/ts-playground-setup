@@ -91,7 +91,9 @@
 (defn logf-exit
   [msg & args]
   (def response (getline "Dump full log? [y/N] "))
-  (when (= "y" (string/ascii-lower response))
+  (when (= "y" (-> response
+                   string/trim
+                   string/ascii-lower))
     (dump-log))
   (eprintf msg ;args)
   (os/exit 1))
