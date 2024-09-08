@@ -90,7 +90,7 @@
 
 (defn logf-exit
   [msg & args]
-  (def response (getline "Dump full log? [y/N]"))
+  (def response (getline "Dump full log? [y/N] "))
   (when (= "y" (string/ascii-lower response))
     (dump-log))
   (eprintf msg ;args)
@@ -157,8 +157,10 @@
       (def result
         (os/execute command flags (merge env {:err ef :out of})))
       (when (not (zero? result))
-        (plogf of)
-        (plogf ef)
+        (file/seek of :set 0)
+        (plogf (string (file/read of :all)))
+        (file/seek ef :set 0)
+        (plogf (string (file/read ef :all)))
         (logf-exit (string "exit code: %d\n"
                            "%n failed")
                    result command)))))
