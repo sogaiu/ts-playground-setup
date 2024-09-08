@@ -399,8 +399,9 @@
                                                 (capture (to -1)))
                                      line)]
                       (string left
-                              (string/replace (string root-dir `\`) ""
-                                              right)))
+                              (->> right
+                                   (string/replace (string root-dir `\`) "")
+                                   (string/replace-all `\` "/"))))
                     line)))
     #
     (each line (string/split "\n" tsjs)
