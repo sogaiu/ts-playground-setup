@@ -19,6 +19,10 @@ case $(uname -s) in
   DragonFly* | FreeBSD* | NetBSD* | OpenBSD*)
     MAKE="gmake"
     ;;
+  MINGW64_NT*)
+    MAKE="make"
+    export CC="gcc"
+    ;;
   *)
     printf "Unrecognized system, defaulting to: make"
     MAKE="make"
