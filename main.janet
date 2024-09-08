@@ -642,7 +642,13 @@
 
 (defn main
   [& argv]
-  (setdyn :tps-os (os/which))
+  (def os (os/which))
+
+  (setdyn :tps-os os)
+
+  (case os
+    :windows (error "sorry, please try via mingw")
+    :cygwin  (error "sorry, please try via mingw"))
 
   (def state @{:root-dir (os/cwd)
                :ts-repo ts-repo
