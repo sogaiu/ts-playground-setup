@@ -378,6 +378,45 @@
 
   (put state :step (inc step)))
 
+(defn massage-lines
+  [root-dir tsjs]
+  (def lines @[])
+  (def os (os/which))
+  (cond
+    # XXX: put this kind of thing at beginning of script?
+    (or (= :windows os) (= :cygwin os))
+    (error "sorry, not tested yet")
+    #
+    (= :mingw os)
+    (each line (string/split "\n" tsjs)
+      (array/push lines
+                  (if-let [pos (string/find "include: " line)
+                           # skip drive letter and search for windows path
+                           resume-pos (+ pos (length "include: ") 1)
+                           _ (string/find `:\` line resume-pos)]
+                    (let [[left right]
+                          (peg/match ~(sequence (capture (thru "include: "))
+                                                (capture (to -1)))
+                                     line)]
+                      (string left
+                              (string/replace (string root-dir `\`) ""
+                                              right)))
+                    line)))
+    #
+    (each line (string/split "\n" tsjs)
+      (array/push lines
+                  (if-let [_ (string/find "include: /" line)]
+                    (let [[left right]
+                          (peg/match ~(sequence (capture (thru "include: "))
+                                                (capture (to -1)))
+                                     line)]
+                      (string left
+                              (string/replace (string root-dir "/") ""
+                                              right)))
+                    line))))
+  #
+  (string/join lines "\n"))
+
 (defn patch-tsjs
   [state]
   (def {:root-dir root-dir :step step
@@ -390,21 +429,9 @@
 
   (def tsjs (slurp tsjs-path))
 
-  (def lines @[])
+  (def massaged (massage-lines root-dir tsjs))
 
-  (each line (string/split "\n" tsjs)
-    (array/push lines
-                (if-let [_ (string/find "include: /" line)]
-                  (let [[left right]
-                        (peg/match ~(sequence (capture (thru "include: "))
-                                              (capture (to -1)))
-                                   line)]
-                    (string left
-                            (string/replace (string root-dir "/") ""
-                                            right)))
-                  line)))
-
-  (spit tsjs-path (string/join lines "\n"))
+  (spit tsjs-path massaged)
 
   (put state :step (inc step)))
 
