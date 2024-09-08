@@ -167,8 +167,31 @@ grammar repository code.
 [0] For this to work, I think the grammars need to have different
 names.
 
-[1] Testing on non-Linux systems has not yet been performed.  Would be
-happy to hear experience reports :)
+[1] There is CI now for linux and macos.  Have confirmed that it can
+work on Windows with appropriate bits.
+
+A relatively easy way for a working Windows arrangement is to use
+[scoop](https://scoop.sh) to install its `git` (underlying bits are
+from [git for windows](https://gitforwindows.org/) and `mingw`
+packages, i.e. via a powershell prompt:
+
+```
+scoop install git
+scoop install mingw
+```
+
+Then via the bash shell that comes with "git for windows", confirm
+that the `gcc` and `make` binaries that would be invoked come from
+`mingw`.  They are typically under a location like:
+
+```
+C:\Users\<username>\scoop\apps\mingw\current\bin
+```
+
+so check `PATH` and adjust accordingly if needed.  Note that if doing
+this from the bash shell, the paths listed in `PATH` might look more
+like `/c/Users/<username>/scoop/apps/mingw/current/bin`, so some
+massaging to conform may be in order.
 
 [2] The code can probably work with versions back to around `0.20.9`,
 but some editing of the `main.janet` file to change the tree-sitter
