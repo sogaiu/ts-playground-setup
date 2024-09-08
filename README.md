@@ -23,6 +23,7 @@ tools such as:
 * git
 * gcc or clang
 * GNU make
+* python3 (emsdk needs this)
 * typical shell such as dash, bash, or zsh
 
 A relatively recent version of the `tree-sitter` cli is also
