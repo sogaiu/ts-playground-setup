@@ -284,15 +284,45 @@
 
   (os/cd "emsdk")
 
-  (plogf "* Running ./emsdk install %s..." emsdk-version)
-  (do-command-via-sh ["./emsdk" "install" emsdk-version] :p)
+  (plogf "* Running emsdk install %s..." emsdk-version)
+  (do-command-via-sh ["emsdk" "install" emsdk-version] :p)
   #
-  (plogf "* Running ./emsdk activate %s..." emsdk-version)
-  (do-command-via-sh ["./emsdk" "activate" emsdk-version] :p)
+  (plogf "* Running emsdk activate %s..." emsdk-version)
+  (do-command-via-sh ["emsdk" "activate" emsdk-version] :p)
+
+  (def [version-dir-name] (os/dir "node"))
+
+  # some light checking of the dir name
+  (assert (peg/match ~(sequence :d (to "bit") "bit")
+                     version-dir-name)
+          (string/format "unexpected dir name: %s" version-dir-name))
+
+  (def path-sep
+    (case (dyn :tps-os)
+      :cygwin (error "sorry, not tested yet")
+      :windows (error "sorry, not tested yet")
+      :mingw ";"
+      ":"))
+
+  (def em-path
+    (case (dyn :tps-os)
+      :cygwin (error "sorry, not tested yet")
+      :windows (error "sorry, not tested yet")
+      :mingw (string root-dir `\emsdk\upstream\emscripten`)
+      (string root-dir "/emsdk/upstream/emscripten")))
+
+  (def node-bin-dir-path
+    (case (dyn :tps-os)
+      :cygwin (error "sorry, not tested yet")
+      :windows (error "sorry, not tested yet")
+      :mingw (string root-dir `\node\` version-dir-name `\bin`)
+      (string root-dir "/node/" version-dir-name "/bin")))
 
   # https://github.com/emscripten-core/emsdk/issues/1142#issuecomment-1334065131
+  # ...but not enough to get node that way
   (def path-with-emcc
-    (string root-dir "/emsdk/upstream/emscripten" ":"
+    (string em-path path-sep
+            node-bin-dir-path path-sep
             (os/getenv "PATH")))
 
   (def env-with-emcc
@@ -388,7 +418,7 @@
 (defn massage-lines
   [root-dir tsjs]
   (def lines @[])
-  (def os (os/which))
+  (def os (dyn :tps-os))
   (cond
     # XXX: put this kind of thing at beginning of script?
     (or (= :windows os) (= :cygwin os))
@@ -605,6 +635,8 @@
 
 (defn main
   [& argv]
+  (setdyn :tps-os (os/which))
+
   (def state @{:root-dir (os/cwd)
                :ts-repo ts-repo
                :emsdk-repo emsdk-repo
