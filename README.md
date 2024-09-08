@@ -172,7 +172,7 @@ work on Windows with appropriate bits.
 
 A relatively easy way for a working Windows arrangement is to use
 [scoop](https://scoop.sh) to install its `git` (underlying bits are
-from [git for windows](https://gitforwindows.org/) and `mingw`
+from [git for windows](https://gitforwindows.org/)) and `mingw`
 packages, i.e. via a powershell prompt:
 
 ```
