@@ -163,35 +163,11 @@
                            "%n failed")
                    result command)))))
 
-(defn find-sh
-  []
-  (def os (os/which))
-  (cond
-    (or (= :windows os) (= :cygwin os))
-    (error "sorry, not tested yet")
-    #
-    (= :mingw (os/which))
-    (let [old-dir (os/cwd)]
-      (os/cd "/")
-      (defer (os/cd old-dir)
-        (with [of (file/temp)]
-          # -W is not a unix thing...
-          (os/execute ["pwd" "-W"] :px {:out of})
-          (file/seek of :set 0)
-          (def root-path (->> (file/read of :all)
-                              string/trim))
-          #
-          (string root-path "/bin/sh"))))
-    # XXX: not an absolute path
-    "sh"))
-
 # shell scripts don't seem to be directly executable in mingw
 (defn do-command-via-sh
   [command flags &opt env]
   (default env {})
-  # to prevent repeated determinations
-  (def sh (dyn :tps-sh (setdyn :tps-sh (find-sh))))
-  (do-command [sh ;command] flags env))
+  (do-command ["sh" ;command] flags env))
 
 (defn ts-build-wasm
   [env]
