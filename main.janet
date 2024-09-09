@@ -152,8 +152,7 @@
   )
 
 (defn do-command
-  [command &opt flags env]
-  (default flags :p)
+  [command flags &opt env]
   (default env {})
   (with [of (file/temp)]
     (with [ef (file/temp)]
