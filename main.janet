@@ -405,32 +405,7 @@
     (os/cd "tree-sitter")
     # among other things, creates lib/binding_web/tree-sitter.{js,wasm}
     (plogf "* Building tree-sitter.{js,wasm}")
-    '(def old-env (os/environ))
-    # XXX
-    '(pp :before-path-change)
-    '(each name (sort (keys old-env))
-      (printf "%s: %s" name (get old-env name)))
-    '(if (= :mingw os)
-      (os/execute ["where" "bash"] :p)
-      (os/execute ["which" "bash"] :p))
-    '(os/setenv "PATH" (get env-with-emcc "PATH"))
-    # XXX
-    '(pp :after-path-change)
-    '(def cur-env (os/environ))
-    '(each name (sort (keys cur-env))
-      (printf "%s: %s" name (get cur-env name)))
-    '(if (= :mingw os)
-      (os/execute ["where" "bash"] :p)
-      (os/execute ["which" "bash"] :p))
     (do-command ["bash" "script/build-wasm"] :pe env-with-emcc)
-    '(def command
-      (if (= os :mingw)
-        #[`C:\Program Files\Git\usr\bin\bash.EXE` "script/build-wasm"]
-        ["bash" "script/build-wasm"]
-        ["bash" "script/build-wasm"]))
-    '(pp [:command command])
-    '(do-command command)
-    '(os/setenv "PATH" (get old-env "PATH"))
     # copy to web-root, lib/binding_web/tree-sitter.{js,wasm}
     (plogf "* Copying some files into %s directory..." web-root)
     (spit (string "../" web-root "/tree-sitter.js")
@@ -683,10 +658,6 @@
                :emsdk-version emsdk-version
                :web-root web-root
                :step 0})
-
-  (if (= :mingw os)
-    (os/execute ["where" "bash"] :p)
-    (os/execute ["which" "bash"] :p))
 
   (-> state
       check-prelims
