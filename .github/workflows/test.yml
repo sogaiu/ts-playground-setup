@@ -27,7 +27,7 @@ jobs:
 
   test-windows-mingw:
     # XXX: disable job
-    #if: false
+    if: false
     name: Build and test on Windows (MinGW)
     runs-on: windows-latest
     steps:
@@ -64,7 +64,7 @@ jobs:
         run: which bash
       - name: Assemble the web directory
         shell: bash
-        # fails in script/build-wasm step -- something about wsl...
+        # fails in script/build-wasm step -- failed to create process
         run: NON_INTERACTIVE=1 sh build-and-run.sh
       - name: Test
         shell: bash
