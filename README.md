@@ -200,7 +200,9 @@ like `/c/Users/<username>/scoop/apps/mingw/current/bin`, so some
 massaging (e.g. use forward slashes, don't lead with `C:`, etc.) to
 conform may be in order.
 
-Once these
+Once all of that is ready, it may be possible to follow the steps in
+the earlier Instructions section, though some minor adjustment for the
+UNIX-orientedness will likely be needed.
 
 ## Footnotes
 
