@@ -403,7 +403,7 @@
     (os/cd "tree-sitter")
     # among other things, creates lib/binding_web/tree-sitter.{js,wasm}
     (plogf "* Building tree-sitter.{js,wasm}")
-    (do-command ["bash" "script/build-wasm"] :pe env-with-emcc)
+    (do-command ["script/build-wasm"] :pe env-with-emcc)
     # copy to web-root, lib/binding_web/tree-sitter.{js,wasm}
     (plogf "* Copying some files into %s directory..." web-root)
     (spit (string "../" web-root "/tree-sitter.js")
