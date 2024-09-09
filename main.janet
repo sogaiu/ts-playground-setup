@@ -406,8 +406,18 @@
     (os/cd "tree-sitter")
     # among other things, creates lib/binding_web/tree-sitter.{js,wasm}
     (plogf "* Building tree-sitter.{js,wasm}")
+    (pp :before-path-change)
+    (pp (os/environ))
+    (if (= :mingw os)
+      (os/execute ["where" "bash"] :p)
+      (os/execute ["which" "bash"] :p))
     (def old-env (os/environ))
     (os/setenv "PATH" (get env-with-emcc "PATH"))
+    (pp :after-path-change)
+    (pp (os/environ))
+    (if (= :mingw os)
+      (os/execute ["where" "bash"] :p)
+      (os/execute ["which" "bash"] :p))
     #(do-command ["script/build-wasm"] :pe env-with-emcc)
     (def command
       (if (= os :mingw)
@@ -668,6 +678,10 @@
                :emsdk-version emsdk-version
                :web-root web-root
                :step 0})
+
+  (if (= :mingw os)
+    (os/execute ["where" "bash"] :p)
+    (os/execute ["which" "bash"] :p))
 
   (-> state
       check-prelims
