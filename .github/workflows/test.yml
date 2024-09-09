@@ -27,7 +27,7 @@ jobs:
 
   test-windows-mingw:
     # XXX: disable job
-    if: false
+    #if: false
     name: Build and test on Windows (MinGW)
     runs-on: windows-latest
     steps:
