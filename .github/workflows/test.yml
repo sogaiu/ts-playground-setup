@@ -36,6 +36,7 @@ jobs:
       - name: Which bash
         shell: bash
         run: which bash
+
       - name: Set up scoop
         uses: MinoruSekine/setup-scoop@v4.0.1
         with:
@@ -45,6 +46,7 @@ jobs:
         shell: bash
         run: |
           echo "$USERPROFILE/scoop/apps/git/current" >> $GITHUB_PATH
+
       - name: Which bash
         shell: bash
         run: which bash
@@ -54,6 +56,7 @@ jobs:
       - name: Locate bash via powershell
         shell: powershell
         run: where.exe bash
+
       - name: Make mingw binaries (gcc, make) available
         shell: bash
         run: |
@@ -64,18 +67,30 @@ jobs:
           echo "$USERPROFILE/scoop/apps/tree-sitter/current/bin" >> $GITHUB_PATH
       - name: Checkout the repository
         uses: actions/checkout@v4
+
       - name: Show PATH for bash
         shell: bash
         run: echo $PATH
       - name: Which bash
         shell: bash
         run: which bash
-      - name: Locate bash via cmd
+
+      - name: Locate bash via cmd (before)
         shell: cmd
         run: where bash
-      - name: Locate bash via powershell
+      - name: Locate bash via powershell (before)
         shell: powershell
         run: where.exe bash
+      - name: Remove wsl-triggering file
+        shell: bash
+        run: rm 'C:\windows\system32\bash.exe'
+      - name: Locate bash via cmd (after)
+        shell: cmd
+        run: where bash
+      - name: Locate bash via powershell (after)
+        shell: powershell
+        run: where.exe bash
+
       - name: Assemble the web directory
         shell: bash
         # fails in script/build-wasm step -- failed to create process
