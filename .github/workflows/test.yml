@@ -37,14 +37,15 @@ jobs:
       - name: Set up scoop
         uses: MinoruSekine/setup-scoop@v4.0.1
         with:
-          apps: git mingw tree-sitter
-      - name: Make git-bash available
-        shell: bash
-        run: |
-          echo "$USERPROFILE/scoop/apps/git/current" >> $GITHUB_PATH
-      - name: Which bash
-        shell: bash
-        run: which bash
+          apps: mingw tree-sitter          
+#          apps: git mingw tree-sitter
+#      - name: Make git-bash available
+#        shell: bash
+#        run: |
+#          echo "$USERPROFILE/scoop/apps/git/current" >> $GITHUB_PATH
+#      - name: Which bash
+#        shell: bash
+#        run: which bash
       - name: Make mingw binaries (gcc, make) available
         shell: bash
         run: |
