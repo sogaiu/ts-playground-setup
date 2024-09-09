@@ -152,7 +152,8 @@
   )
 
 (defn do-command
-  [command flags &opt env]
+  [command &opt flags env]
+  (default flags :p)
   (default env {})
   (with [of (file/temp)]
     (with [ef (file/temp)]
@@ -406,7 +407,9 @@
     (def old-env (os/environ))
     (os/setenv "PATH" (get env-with-emcc "PATH"))
     #(do-command ["script/build-wasm"] :pe env-with-emcc)
-    (do-command ["script/build-wasm"] :p)
+    (def script-path (string (os/cwd) "/" "script" "/" "build-wasm"))
+    (pp [:script-path script-path])
+    (do-command [script-path])
     (os/setenv "PATH" (get old-env "PATH"))
     # copy to web-root, lib/binding_web/tree-sitter.{js,wasm}
     (plogf "* Copying some files into %s directory..." web-root)
