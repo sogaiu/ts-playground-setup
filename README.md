@@ -6,32 +6,42 @@ or more grammars, like
 
 ## Introduction
 
+### What and Why
+
 This repository provides code to automate the process of assembling a
-tree-sitter playground that works with a user-specified list of
-grammars.
+tree of files and directories for hosting a tree-sitter playground for
+a user-specified list of grammars.
 
 This might be useful in the following sorts of cases:
 
-* Demo one's grammar via a web server...well, because :)
-* Switch between multiple alternate similar grammars for comparison [0]
-* Make it easier for folks to experience / investigate an issue with
-  your grammar
+* Demoing one's grammar via a web server...well, because :)
+* Switching among multiple similar grammars for comparison [0]
+* Easing the experiencing / investigation of an issue
 
-It may work on Unix-ish systems / environments [1] that have typical dev
+### Prerequisites
+
+It may work on typical Unix-ish systems / environments [1] that have
 tools such as:
 
+* bash
+* gcc [2]
 * git
-* gcc or clang
 * GNU make
-* python3 (emsdk needs this)
-* typical shell such as dash, bash, or zsh
+* python3 [3]
+* typical sh
 
-A relatively recent version of the `tree-sitter` cli is also
-necessary.  Out-of-the-box, this code should work with version
-`0.23.0` [2].
+Also, a relatively recent version of the `tree-sitter` cli is needed.
+Out-of-the-box, this code should work with version `0.23.0` [4].
 
-Also, the directory `sample-output-dir` is an example of what can be
-produced with this tool [3].
+Most of this document is written with a slant toward a UNIX-like
+system, but it's possible with some work to get it to work on Windows
+too.  See the Windows section near the end of this document for more
+information.
+
+### Other Things to Examine
+
+Consider inspecting the `sample-output-dir` directory as it is an
+example of what can be produced with this tool [5].
 
 See the Details section below for information regarding:
 
@@ -49,7 +59,7 @@ Clone this repository:
 git clone https://github.com/sogaiu/ts-playground-setup
 ```
 
-Edit list of grammar repositories [4]:
+Edit list of grammar repositories [6]:
 
 ```
 cd ts-playground-setup
@@ -163,22 +173,17 @@ issue](https://github.com/tree-sitter/tree-sitter/issues/1641) that
 summarizes some important security considerations regarding the use of
 grammar repository code.
 
-## Footnotes
-
-[0] For this to work, I think the grammars need to have different
-names.
-
-[1] There is CI now for linux and macos.  Have confirmed that it can
-work on Windows with appropriate bits.
+## Windows
 
 A relatively easy way for a working Windows arrangement is to use
 [scoop](https://scoop.sh) to install its `git` (underlying bits are
-from [git for windows](https://gitforwindows.org/)) and `mingw`
-packages, i.e. via a powershell prompt:
+from [git for windows](https://gitforwindows.org/)), `mingw`, and
+`python` packages, i.e. via a powershell prompt:
 
 ```
 scoop install git
 scoop install mingw
+scoop install python
 ```
 
 Then via the bash shell that comes with "git for windows", confirm
@@ -192,18 +197,36 @@ C:\Users\<username>\scoop\apps\mingw\current\bin
 so check `PATH` and adjust accordingly if needed.  Note that if doing
 this from the bash shell, the paths listed in `PATH` might look more
 like `/c/Users/<username>/scoop/apps/mingw/current/bin`, so some
-massaging to conform may be in order.
+massaging (e.g. use forward slashes, don't lead with `C:`, etc.) to
+conform may be in order.
 
-[2] The code can probably work with versions back to around `0.20.9`,
+Once these
+
+## Footnotes
+
+[0] For this to work, the grammars likely need to have different
+names.
+
+[1] There is CI now for linux, macos, and windows (mingw + git for
+windows).
+
+[2] It may be possible to get this to work with `clang` but this has
+not been attempted.
+
+[3] The code in this repository uses emsdk and will fetch and
+configure that for use, but emsdk itself requires python3.  Please
+ensure python3 is available.
+
+[4] The code can probably work with versions back to around `0.20.9`,
 but some editing of the `main.janet` file to change the tree-sitter
 repository tag (see the definition of `ts-repo`) is probably
 necessary.
 
-[3] The content of the directory `sample-output-dir` could be
+[5] The content of the directory `sample-output-dir` could be
 copy-modified to one's taste instead of using the code in this
 repository to achieve one's ends :)
 
-[4] See
+[6] See
 [here](https://github.com/sogaiu/ts-questions/blob/master/ts-grammar-repositories.txt)
 for a list of repository urls.
 
