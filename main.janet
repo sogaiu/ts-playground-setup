@@ -411,10 +411,12 @@
     #(do-command ["script/build-wasm"] :pe env-with-emcc)
     (def command
       (if (= os :mingw)
-        [`C:\Program Files\Git\bin\bash.EXE`
+        ["bash"
          "--noprofile" "--norc" "-e" "-o" "pipefail"
          (string (os/cwd) `\` "script" `\` "build-wasm")]
-        [(string (os/cwd) "/" "script" "/" "build-wasm")]))
+        ["bash"
+         "--noprofile" "--norc" "-e" "-o" "pipefail"
+         (string (os/cwd) "/" "script" "/" "build-wasm")]))
     (pp [:command command])
     (do-command command)
     (os/setenv "PATH" (get old-env "PATH"))
