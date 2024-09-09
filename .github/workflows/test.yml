@@ -40,12 +40,13 @@ jobs:
       - name: Set up scoop
         uses: MinoruSekine/setup-scoop@v4.0.1
         with:
-          apps: git mingw tree-sitter
-#          apps: mingw tree-sitter
-      - name: Make git-bash available
-        shell: bash
-        run: |
-          echo "$USERPROFILE/scoop/apps/git/current" >> $GITHUB_PATH
+          apps: mingw tree-sitter
+#          apps: git mingw tree-sitter
+
+#      - name: Make git-bash available
+#        shell: bash
+#        run: |
+#          echo "$USERPROFILE/scoop/apps/git/current" >> $GITHUB_PATH
 
       - name: Which bash
         shell: bash
@@ -61,10 +62,12 @@ jobs:
         shell: bash
         run: |
           echo "$USERPROFILE/scoop/apps/mingw/current/bin" >> $GITHUB_PATH
+
       - name: Make tree-sitter cli available
         shell: bash
         run: |
           echo "$USERPROFILE/scoop/apps/tree-sitter/current/bin" >> $GITHUB_PATH
+
       - name: Checkout the repository
         uses: actions/checkout@v4
 
@@ -74,16 +77,19 @@ jobs:
       - name: Which bash
         shell: bash
         run: which bash
-
       - name: Locate bash via cmd (before)
         shell: cmd
         run: where bash
       - name: Locate bash via powershell (before)
         shell: powershell
         run: where.exe bash
+
+      # without this, wsl seems to get triggered when trying to execute
+      # bash script/build-wasm within our code...
       - name: Remove wsl-triggering file
         shell: bash
         run: rm 'C:\windows\system32\bash.exe'
+
       - name: Locate bash via cmd (after)
         shell: cmd
         run: where bash
@@ -93,8 +99,8 @@ jobs:
 
       - name: Assemble the web directory
         shell: bash
-        # fails in script/build-wasm step -- failed to create process
         run: NON_INTERACTIVE=1 sh build-and-run.sh
+
       - name: Test
         shell: bash
         run: sh test.sh
