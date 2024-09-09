@@ -426,7 +426,7 @@
     #(do-command ["script/build-wasm"] :pe env-with-emcc)
     (def command
       (if (= os :mingw)
-        [`C:\Program Files\Git\bin\bash.EXE` "script/build-wasm"]
+        [`C:\Program Files\Git\usr\bin\bash.EXE` "script/build-wasm"]
         ["bash" "script/build-wasm"]))
     (pp [:command command])
     (do-command command)
