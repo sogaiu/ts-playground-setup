@@ -400,6 +400,8 @@
   (remark "Building and copying playground files" step)
   (os/cd root-dir)
 
+  (def os (dyn :tps-os))
+
   (defer (os/cd root-dir)
     (os/cd "tree-sitter")
     # among other things, creates lib/binding_web/tree-sitter.{js,wasm}
@@ -407,7 +409,10 @@
     (def old-env (os/environ))
     (os/setenv "PATH" (get env-with-emcc "PATH"))
     #(do-command ["script/build-wasm"] :pe env-with-emcc)
-    (def script-path (string (os/cwd) "/" "script" "/" "build-wasm"))
+    (def script-path
+      (if (= os :mingw)
+        (string (os/cwd) `\` "script" `\` "build-wasm")
+        (string (os/cwd) "/" "script" "/" "build-wasm")))
     (pp [:script-path script-path])
     (do-command [script-path])
     (os/setenv "PATH" (get old-env "PATH"))
