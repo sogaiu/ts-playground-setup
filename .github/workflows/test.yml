@@ -8,6 +8,8 @@ permissions:
 jobs:
 
   test-posix:
+    # XXX: disable
+    if: false
     name: Build and test on Linux / macos
     runs-on: ${{ matrix.os }}
     strategy:
@@ -27,7 +29,7 @@ jobs:
 
   test-windows-mingw:
     # XXX: disable job
-    if: false
+    #if: false
     name: Build and test on Windows (MinGW)
     runs-on: windows-latest
     steps:

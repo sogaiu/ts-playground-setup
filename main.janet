@@ -331,8 +331,14 @@
             node-bin-dir-path path-sep
             (os/getenv "PATH")))
 
+  (each p (string/split path-sep path-with-emcc)
+    (print p))
+
   (def env-with-emcc
     (merge (os/environ) {"PATH" path-with-emcc}))
+
+  (each name (sort (keys env-with-emcc))
+    (print name ":" (get env-with-emcc name)))
 
   # XXX: can use this to see if emcc is available using env-with-emcc
   '(os/execute ["which" "emcc"] :pex env-with-emcc)
