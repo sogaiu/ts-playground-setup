@@ -64,9 +64,12 @@ jobs:
       - name: Which bash
         shell: bash
         run: which bash
-      - name: Locate bash
+      - name: Locate bash via cmd
         shell: cmd
         run: where bash
+      - name: Locate bash via powershell
+        shell: powershell
+        run: where.exe bash
       - name: Assemble the web directory
         shell: bash
         # fails in script/build-wasm step -- failed to create process
