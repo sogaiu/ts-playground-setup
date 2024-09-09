@@ -1,3 +1,5 @@
 #! /bin/sh
 
-diff -r web sample-output-dir
+diff --recursive \
+     --strip-trailing-cr \
+     web sample-output-dir
