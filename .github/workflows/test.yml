@@ -1,3 +1,4 @@
+# thanks to iirekm for articulating this: https://stackoverflow.com/a/59988803
 name: Test
 
 on: [push, pull_request]
@@ -8,8 +9,8 @@ permissions:
 jobs:
 
   test-posix:
-    # XXX: disable
-    if: false
+    # XXX: uncomment to disable
+    #if: false
     name: Build and test on Linux / macos
     runs-on: ${{ matrix.os }}
     strategy:
@@ -28,36 +29,18 @@ jobs:
         run: sh test.sh
 
   test-windows-mingw:
-    # XXX: disable job
+    # XXX: uncomment to disable
     #if: false
-    name: Build and test on Windows (MinGW)
+    name: Build and test on Windows (MinGW + Git for Windows)
     runs-on: windows-latest
     steps:
-      - name: Which bash
-        shell: bash
-        run: which bash
-
+      # why isn't scoop included in the runner image?
       - name: Set up scoop
         uses: MinoruSekine/setup-scoop@v4.0.1
         with:
           apps: mingw tree-sitter
-#          apps: git mingw tree-sitter
 
-#      - name: Make git-bash available
-#        shell: bash
-#        run: |
-#          echo "$USERPROFILE/scoop/apps/git/current" >> $GITHUB_PATH
-
-      - name: Which bash
-        shell: bash
-        run: which bash
-      - name: Locate bash via cmd
-        shell: cmd
-        run: where bash
-      - name: Locate bash via powershell
-        shell: powershell
-        run: where.exe bash
-
+      # why isn't this included in the runner image?
       - name: Make mingw binaries (gcc, make) available
         shell: bash
         run: |
@@ -68,34 +51,24 @@ jobs:
         run: |
           echo "$USERPROFILE/scoop/apps/tree-sitter/current/bin" >> $GITHUB_PATH
 
-      - name: Checkout the repository
-        uses: actions/checkout@v4
-
-      - name: Show PATH for bash
-        shell: bash
-        run: echo $PATH
-      - name: Which bash
-        shell: bash
-        run: which bash
-      - name: Locate bash via cmd (before)
-        shell: cmd
-        run: where bash
-      - name: Locate bash via powershell (before)
-        shell: powershell
-        run: where.exe bash
-
-      # without this, wsl seems to get triggered when trying to execute
-      # bash script/build-wasm within our code...
+      # without the following, wsl seems to get triggered (at least
+      # when using the runner image) when trying to execute `bash
+      # script/build-wasm` within our code...it's very strange because
+      # that particular bash.exe (the one under c:\windows\system32)
+      # doesn't seem to get triggered elsewhere ("outside" of the
+      # world within `sh build-and-run.sh` below, i.e. "up / out
+      # here").  changing PATH in various ways did not have the
+      # desirable effect.  so...how about removing the binary?  thanks
+      # to Mizux: https://stackoverflow.com/a/69251820 for the idea.
+      # now...how long will this keep working?
       - name: Remove wsl-triggering file
         shell: bash
         run: rm 'C:\windows\system32\bash.exe'
+      # perhaps this could have been avoided if a good way to disable
+      # wsl had been found.
 
-      - name: Locate bash via cmd (after)
-        shell: cmd
-        run: where bash
-      - name: Locate bash via powershell (after)
-        shell: powershell
-        run: where.exe bash
+      - name: Checkout the repository
+        uses: actions/checkout@v4
 
       - name: Assemble the web directory
         shell: bash
