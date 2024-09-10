@@ -1,10 +1,16 @@
 #! /bin/sh
 
-JANET_TAG=v1.35.2
+JANET_VERSION=1.35.2
+JANET_TAG="v$JANET_VERSION"
 
 ########################################################################
 
 JANET_BIN=./janet/build/janet
+JANET_MINGW_EXE=./bin/janet.exe
+
+########################################################################
+
+UNAME_S=$(uname -s)
 
 dir=$(pwd)
 
@@ -12,7 +18,7 @@ dir=$(pwd)
 
 # https://stackoverflow.com/a/27776822
 # https://en.wikipedia.org/wiki/Uname#Examples
-case $(uname -s) in
+case $UNAME_S in
   Linux* | Darwin*)
     MAKE="make"
     ;;
@@ -31,20 +37,30 @@ esac
 
 ########################################################################
 
-fetch_and_build_janet()
+ensure_janet()
 {
   git clone https://github.com/janet-lang/janet \
-      --depth 1 --branch "$JANET_TAG" && \
-    cd janet && \
-    "$MAKE" clean && \
-    "$MAKE" && \
-    cd "$dir" || exit
+    --depth 1 \
+    --branch "$JANET_TAG" || exit
+
+  case $UNAME_S in
+    MINGW64_NT*)
+      mkdir -p ./janet/build
+      cp "$JANET_MINGW_EXE" "$JANET_BIN"
+      ;;
+  *)
+      cd janet && \
+      "$MAKE" clean && \
+      "$MAKE" && \
+      cd "$dir" || exit
+      ;;
+  esac
 }
 
 main()
 {
  if [ ! -f "$JANET_BIN" ]; then
-   fetch_and_build_janet
+   ensure_janet
  fi
  cd "$dir" || exit
  if [ -f "$JANET_BIN" ]; then
