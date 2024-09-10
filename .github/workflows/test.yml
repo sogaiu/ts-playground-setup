@@ -10,7 +10,7 @@ jobs:
 
   test-posix:
     # XXX: uncomment to disable
-    #if: false
+    if: false
     name: Build and test on Linux / macos
     runs-on: ${{ matrix.os }}
     strategy:
