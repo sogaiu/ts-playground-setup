@@ -10,7 +10,7 @@ jobs:
 
   test-posix:
     # XXX: uncomment to disable
-    if: false
+    #if: false
     name: Build and test on Linux / macos
     runs-on: ${{ matrix.os }}
     strategy:
@@ -74,15 +74,11 @@ jobs:
         shell: bash
         run: NON_INTERACTIVE=1 sh build-and-run.sh
 
-      - name: Output the current working directory name and content
-        shell: bash
-        run: pwd && ls -al
-
-      - name: Save MinGW version of janet executable
-        uses: actions/upload-artifact@v4
-        with:
-          name: mingw-janet
-          path: .\janet\build\janet.exe
+      # - name: Save MinGW version of janet executable
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: mingw-janet
+      #     path: .\janet\build\janet.exe
 
       - name: Test
         shell: bash
