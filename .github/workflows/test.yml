@@ -74,6 +74,10 @@ jobs:
         shell: bash
         run: NON_INTERACTIVE=1 sh build-and-run.sh
 
+      - name: Output the current working directory name and content
+        shell: bash
+        run: pwd && ls -al
+
       - name: Save MinGW version of janet executable
         uses: actions/upload-artifact@v4
         with:
