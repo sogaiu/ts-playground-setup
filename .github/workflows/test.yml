@@ -78,7 +78,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: mingw-janet
-          path: ./janet/build/janet
+          path: ${{ github.workspace }}/ts-playground-setup/janet/build/janet
 
       - name: Test
         shell: bash
