@@ -66,10 +66,10 @@ cd ts-playground-setup
 $EDITOR grammar-repos.txt || $VISUAL grammar-repos.txt
 ```
 
-Prepare web directory:
+Assemble web directory:
 
 ```
-sh build-and-run.sh
+sh prep-and-run.sh
 ```
 
 ### Verify
