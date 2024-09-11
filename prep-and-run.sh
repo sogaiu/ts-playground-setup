@@ -44,10 +44,10 @@ ensure_janet()
     --branch "$JANET_TAG" || exit
 
   case $UNAME_S in
-#    MINGW64_NT*)
-#      mkdir -p ./janet/build
-#      cp "$JANET_MINGW_EXE" "$JANET_BIN"
-#      ;;
+    MINGW64_NT*)
+      mkdir -p ./janet/build
+      cp "$JANET_MINGW_EXE" "$JANET_BIN"
+      ;;
   *)
       cd janet && \
       "$MAKE" clean && \
