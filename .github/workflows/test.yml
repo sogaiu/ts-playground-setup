@@ -74,6 +74,9 @@ jobs:
         shell: bash
         run: NON_INTERACTIVE=1 sh prep-and-run.sh
 
+      # note that this will only result in a file if the janet build
+      # process takes place.  ordinarily, it won't for this job
+      # because the bundled .exe will be used.
       - name: Save MinGW version of janet executable
         uses: actions/upload-artifact@v4
         with:
