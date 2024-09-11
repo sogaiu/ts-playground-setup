@@ -1,6 +1,6 @@
 #! /bin/sh
 
-JANET_VERSION=1.35.2
+JANET_VERSION=1.36.0
 JANET_TAG="v$JANET_VERSION"
 
 ########################################################################

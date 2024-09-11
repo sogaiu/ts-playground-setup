@@ -74,11 +74,11 @@ jobs:
         shell: bash
         run: NON_INTERACTIVE=1 sh prep-and-run.sh
 
-      # - name: Save MinGW version of janet executable
-      #   uses: actions/upload-artifact@v4
-      #   with:
-      #     name: mingw-janet
-      #     path: .\janet\build\janet.exe
+      - name: Save MinGW version of janet executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: mingw-janet
+          path: .\janet\build\janet.exe
 
       - name: Test
         shell: bash
