@@ -45,17 +45,17 @@ ensure_janet()
 #      cp "$JANET_MINGW_EXE" "$JANET_BIN"
 #      ;;
   *)
-      if [ ! -d "janet" ]; then
-        git clone https://github.com/janet-lang/janet \
-          --depth 1 \
-          --branch "$JANET_TAG" || exit
-      fi
+    if [ ! -d "janet" ]; then
+      git clone https://github.com/janet-lang/janet \
+        --depth 1 \
+        --branch "$JANET_TAG" || exit
+    fi
 
-      cd janet && \
-      "$MAKE" clean && \
-      "$MAKE" && \
-      cd "$dir" || exit
-      ;;
+    cd janet && \
+    "$MAKE" clean && \
+    "$MAKE" && \
+    cd "$dir" || exit
+    ;;
   esac
 }
 
