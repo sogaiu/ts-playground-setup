@@ -1,7 +1,7 @@
 # thanks to iirekm for articulating this: https://stackoverflow.com/a/59988803
 name: Test
 
-on: [push, pull_request]
+on: [push, pull_request, workflow_dispatch]
 
 permissions:
   contents: read
