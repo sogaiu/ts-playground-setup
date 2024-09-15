@@ -39,16 +39,18 @@ esac
 
 ensure_janet()
 {
-  git clone https://github.com/janet-lang/janet \
-    --depth 1 \
-    --branch "$JANET_TAG" || exit
-
   case $UNAME_S in
     MINGW64_NT*)
       mkdir -p ./janet/build
       cp "$JANET_MINGW_EXE" "$JANET_BIN"
       ;;
   *)
+      if [ ! -d "janet" ]; then
+        git clone https://github.com/janet-lang/janet \
+          --depth 1 \
+          --branch "$JANET_TAG" || exit
+      fi
+
       cd janet && \
       "$MAKE" clean && \
       "$MAKE" && \
