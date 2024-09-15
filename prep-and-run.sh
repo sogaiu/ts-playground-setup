@@ -40,10 +40,10 @@ esac
 ensure_janet()
 {
   case $UNAME_S in
-    MINGW64_NT*)
-      mkdir -p ./janet/build
-      cp "$JANET_MINGW_EXE" "$JANET_BIN"
-      ;;
+#    MINGW64_NT*)
+#      mkdir -p ./janet/build
+#      cp "$JANET_MINGW_EXE" "$JANET_BIN"
+#      ;;
   *)
       if [ ! -d "janet" ]; then
         git clone https://github.com/janet-lang/janet \
