@@ -1,2 +1,7 @@
 # our tests are sensitive to line endings
-* text eol=lf
+*.css text eol=lf
+*.html text eol=lf
+*.janet text eol=lf
+*.js text eol=lf
+*.wasm binary
+*.png binary

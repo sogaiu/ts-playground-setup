@@ -31,7 +31,7 @@ tools such as:
 * typical sh
 
 Also, a relatively recent version of the `tree-sitter` cli is needed.
-Out-of-the-box, this code should work with version `0.23.0` [4].
+Out-of-the-box, this code should work with version `0.23.2` [4].
 
 Most of this document is written with a slant toward a UNIX-like
 system, but it's possible with some work to get it to work on Windows

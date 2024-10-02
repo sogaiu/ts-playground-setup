@@ -14,12 +14,13 @@
 ########################################################################
 
 (def ts-repo
-  ["https://github.com/tree-sitter/tree-sitter"
-   #"v0.20.9"
-   #"v0.22.2"
-   #"v0.22.6"
-   "v0.23.0"
-   ])
+  [(string "https://github.com/tree-sitter/tree-sitter"
+           #"#v0.20.9"
+           #"#v0.22.2"
+           #"#v0.22.6"
+           #"#v0.23.0"
+           #"#v0.23.1"
+           "#v0.23.2")])
 
 # name or path to tree-sitter binary
 (def ts-bin-path
@@ -28,6 +29,8 @@
   #"tree-sitter.0.22.2"
   #"tree-sitter.0.22.6"
   #"tree-sitter.0.23.0"
+  #"tree-sitter.0.23.1"
+  #"tree-sitter.0.23.2"
   )
 
 # https://github.com/sogaiu/ts-questions/blob \
@@ -45,15 +48,42 @@
     "v0.22.4" "3.1.55"
     "v0.22.5" "3.1.55"
     "v0.22.6" "3.1.55"
-    "v0.23.0" "3.1.64"})
+    "v0.23.0" "3.1.64"
+    "v0.23.1" "3.1.64"
+    "v0.23.2" "3.1.64"})
+
+########################################################################
+
+# XXX: problematic if there is a tag at the end and it contains a slash
+(defn tail-from-url
+  [url]
+  (def end
+    (string/slice url (inc (last (string/find-all "/" url)))))
+  #
+  (string/split "#" end))
+
+(comment
+
+  (tail-from-url "https://github.com/tree-sitter/tree-sitter-c")
+  # =>
+  ["tree-sitter-c"]
+
+  (tail-from-url "https://github.com/tree-sitter/tree-sitter-c#v0.23.1")
+  # =>
+  ["tree-sitter-c" "0.23.1"]
+
+  )
+
+########################################################################
 
 # https://github.com/emscripten-core/emsdk/issues/1441
 (def emsdk-version
-  (get ts-emsdk (get ts-repo 1)))
+  (let [[_ tag] (tail-from-url (get ts-repo 0))]
+    (get ts-emsdk tag)))
 
 (def emsdk-repo
-  ["https://github.com/emscripten-core/emsdk"
-   emsdk-version])
+  [(string "https://github.com/emscripten-core/emsdk"
+           "#" emsdk-version)])
 
 ########################################################################
 
@@ -99,18 +129,6 @@
   (os/exit 1))
 
 ########################################################################
-
-(defn tail-from-url
-  [url]
-  (string/slice url (inc (last (string/find-all "/" url)))))
-
-(comment
-
-  (tail-from-url "https://github.com/tree-sitter/tree-sitter-c")
-  # =>
-  "tree-sitter-c"
-
-  )
 
 (defn dir-to-name
   [dir]
@@ -175,15 +193,11 @@
 
 (defn ts-build-wasm
   [env]
-  # XXX: don't enable yet
-  #(def [major minor patch] (ts-version))
+  (def [major minor patch] (ts-version))
   (def args
-    # XXX: don't enable yet
-    # plan is for v0.24.0 to remove build-wasm apparently
-    #(if (and (zero? major) (<= minor 23))
-    ["build-wasm"]
-    #  ["build" "--wasm"])
-    )
+    (if (and (zero? major) (<= minor 22))
+      ["build-wasm"]
+      ["build" "--wasm"]))
   (do-command [ts-bin-path ;args] :pe env))
 
 ########################################################################
@@ -257,11 +271,15 @@
 
   (os/cd root-dir)
 
-  (each [url branch] repos
-    (when (not (os/stat (tail-from-url url)))
-      (def branch-part (if branch ["--branch" branch] []))
-      (plogf "* Cloning %s..." url)
-      (do-command ["git" "clone" "--depth" "1" ;branch-part url] :p)))
+  (each [url subdir] repos
+    (def [repo-dir commit-id] (tail-from-url url))
+    (when (not (os/stat repo-dir))
+      (def branch-part-maybe (if commit-id ["--branch" commit-id] []))
+      (def url-pre-hash (get (string/split "#" url) 0))
+      (plogf "* Cloning %s..." url-pre-hash)
+      (do-command ["git" "clone"
+                   "--depth" "1" ;branch-part-maybe
+                   url-pre-hash] :p)))
 
   (put state :step (inc step)))
 
@@ -367,7 +385,7 @@
   (os/cd root-dir)
 
   (each [url extra] grammar-repos
-    (def local-dir (tail-from-url url))
+    (def [local-dir] (tail-from-url url))
     (def name (dir-to-name (if extra
                              extra
                              local-dir)))
@@ -382,6 +400,7 @@
           (os/cd extra))
         # make sure src/parser.c and friends exist
         (plogf "* Generating parser.c and friends for %s..." name)
+        # XXX: may need to drop "--no-bindings" around version 0.25.0
         (do-command [ts-bin-path "generate" "--no-bindings"] :pe
                     env-with-emcc)
         # build wasm files
@@ -552,10 +571,10 @@
                `">(?)</a>`)
        ""]
       # make js local
-      ;(map |[$ (tail-from-url $)]
+      ;(map |[$ (get (tail-from-url $) 0)]
             js-urls)
       # make css local
-      ;(map |[$ (string "assets/css/" (tail-from-url $))]
+      ;(map |[$ (string "assets/css/" (get (tail-from-url $) 0))]
             css-urls)
       # make some images paths local
       [`https://tree-sitter.github.io/tree-sitter/assets/images/`
@@ -566,7 +585,7 @@
       # show items for each grammar
       [`<option value="parser">Parser</option>`
        (string/join (map |(let [[url extra] $
-                                local-dir (tail-from-url url)
+                                local-dir (get (tail-from-url url) 0)
                                 name (dir-to-name (if extra
                                                     extra
                                                     local-dir))]
@@ -596,7 +615,7 @@
   (defer (os/cd root-dir)
     (os/cd (string web-root "/assets/css"))
     (each css-url css-urls
-      (def name (tail-from-url css-url))
+      (def [name] (tail-from-url css-url))
       (do-command ["curl" "--output" name
                    "--location"
                    css-url] :p)))
@@ -614,7 +633,7 @@
   (defer (os/cd root-dir)
     (os/cd web-root)
     (each js-url js-urls
-      (def name (tail-from-url js-url))
+      (def [name] (tail-from-url js-url))
       (do-command ["curl" "--output" name
                    "--location"
                    js-url] :p)))
